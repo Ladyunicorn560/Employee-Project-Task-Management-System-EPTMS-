@@ -3,6 +3,8 @@ const milestoneTasksRouter = express.Router({ mergeParams: true });
 const directTasksRouter = express.Router();
 const taskController = require('../controllers/taskController');
 const { taskSubtasksRouter } = require('./subtaskRoutes');
+const { taskCommentsRouter } = require('./commentRoutes');
+const { taskAttachmentsRouter } = require('./attachmentRoutes');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -32,8 +34,10 @@ milestoneTasksRouter.post(
   taskController.createTask
 );
 
-// Mount nested subtasks router under /api/v1/tasks/:taskId/subtasks
+// Mount nested sub-resources under /api/v1/tasks/:taskId
 directTasksRouter.use('/:taskId/subtasks', taskSubtasksRouter);
+directTasksRouter.use('/:taskId/comments', taskCommentsRouter);
+directTasksRouter.use('/:taskId/attachments', taskAttachmentsRouter);
 
 // -----------------------------------------------------------------------------
 // Direct Routes (/api/v1/tasks/:id)
