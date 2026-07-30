@@ -11,6 +11,7 @@ const { directTasksRouter } = require('./taskRoutes');
 const { directSubtasksRouter } = require('./subtaskRoutes');
 const { directCommentsRouter } = require('./commentRoutes');
 const { directAttachmentsRouter } = require('./attachmentRoutes');
+const { directReviewsRouter } = require('./reviewRoutes');
 
 // Mount API v1 Routes
 router.use('/', healthRoutes);
@@ -24,5 +25,6 @@ router.use('/tasks', directTasksRouter);
 router.use('/subtasks', directSubtasksRouter);
 router.use('/comments', directCommentsRouter);
 router.use('/attachments', directAttachmentsRouter);
+router.use('/reviews', directReviewsRouter);
 
 module.exports = router;

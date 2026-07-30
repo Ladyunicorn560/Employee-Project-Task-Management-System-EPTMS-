@@ -5,6 +5,7 @@ const taskController = require('../controllers/taskController');
 const { taskSubtasksRouter } = require('./subtaskRoutes');
 const { taskCommentsRouter } = require('./commentRoutes');
 const { taskAttachmentsRouter } = require('./attachmentRoutes');
+const { taskReviewsRouter } = require('./reviewRoutes');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -38,6 +39,7 @@ milestoneTasksRouter.post(
 directTasksRouter.use('/:taskId/subtasks', taskSubtasksRouter);
 directTasksRouter.use('/:taskId/comments', taskCommentsRouter);
 directTasksRouter.use('/:taskId/attachments', taskAttachmentsRouter);
+directTasksRouter.use('/:taskId/reviews', taskReviewsRouter);
 
 // -----------------------------------------------------------------------------
 // Direct Routes (/api/v1/tasks/:id)
