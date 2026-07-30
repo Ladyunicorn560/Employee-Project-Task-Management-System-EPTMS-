@@ -140,6 +140,29 @@ class AuthRepository extends BaseRepository {
 
     await this.query(queryStr, params);
   }
+
+  /**
+   * Updates employee password hash
+   * @param {number} employeeId 
+   * @param {string} passwordHash 
+   */
+  async updatePassword(employeeId, passwordHash) {
+    const queryStr = `
+      UPDATE [dbo].[Employee]
+      SET 
+        [PasswordHash] = @PasswordHash,
+        [PasswordChangedAt] = SYSUTCDATETIME(),
+        [UpdatedDate] = SYSUTCDATETIME()
+      WHERE [EmployeeID] = @EmployeeID;
+    `;
+
+    const params = {
+      EmployeeID: { type: mssql.Int, value: employeeId },
+      PasswordHash: { type: mssql.NVarChar(255), value: passwordHash }
+    };
+
+    await this.query(queryStr, params);
+  }
 }
 
 module.exports = new AuthRepository();

@@ -48,8 +48,24 @@ const globalRateLimiter = rateLimit({
   }
 });
 
+// Stricter Rate Limiter for Authentication Endpoints (brute-force protection)
+const authRateLimiter = rateLimit({
+  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // Default: 15 minutes
+  max: env.AUTH_RATE_LIMIT_MAX_REQUESTS || 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  message: {
+    success: false,
+    status: 429,
+    message: 'Too many authentication attempts. Please try again in 15 minutes.',
+    errorCode: 'AUTH_RATE_LIMIT_EXCEEDED'
+  }
+});
+
 module.exports = {
   helmetMiddleware,
   corsMiddleware,
-  globalRateLimiter
+  globalRateLimiter,
+  authRateLimiter
 };

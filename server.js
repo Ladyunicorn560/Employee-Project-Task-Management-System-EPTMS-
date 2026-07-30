@@ -20,6 +20,11 @@ async function startServer() {
       logger.info(`=======================================================`);
     });
 
+    // 3. Configure HTTP server timeouts for production performance & stability
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
+    server.requestTimeout = 120000; // 2 minutes
+
   } catch (err) {
     logger.error('💥 Server startup failed due to database or initialization error:', err);
     process.exit(1);

@@ -5,11 +5,11 @@ const env = require('../config/env');
 /**
  * Global Express Error Handling Middleware
  */
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   let statusCode = err.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
   let message = err.message || 'Internal Server Error';
   let errorCode = err.errorCode || 'INTERNAL_SERVER_ERROR';
-  let errors = err.errors || null;
+  const errors = err.errors || null;
 
   // Log error stack trace
   if (statusCode >= 500) {

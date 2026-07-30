@@ -16,6 +16,24 @@ const loginSchema = z.object({
   })
 });
 
+/**
+ * Zod Schema for PUT /api/v1/auth/change-password
+ */
+const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z
+      .string({ required_error: 'Current password is required' })
+      .min(1, 'Current password cannot be empty'),
+    newPassword: z
+      .string({ required_error: 'New password is required' })
+      .min(8, 'New password must be at least 8 characters')
+      .regex(/[A-Z]/, 'New password must contain at least one uppercase letter')
+      .regex(/[0-9]/, 'New password must contain at least one number')
+      .regex(/[^A-Za-z0-9]/, 'New password must contain at least one special character')
+  })
+});
+
 module.exports = {
-  loginSchema
+  loginSchema,
+  changePasswordSchema
 };

@@ -1,6 +1,5 @@
 const departmentRepository = require('../repositories/departmentRepository');
 const NotFoundError = require('../errors/NotFoundError');
-const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
 const logger = require('../utils/logger');
 

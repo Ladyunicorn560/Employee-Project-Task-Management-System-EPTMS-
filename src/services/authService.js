@@ -1,11 +1,10 @@
 const authRepository = require('../repositories/authRepository');
-const { comparePassword } = require('../utils/crypto');
+const { comparePassword, hashPassword } = require('../utils/crypto');
 const { generateToken } = require('../utils/jwt');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 const ForbiddenError = require('../errors/ForbiddenError');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
-const HTTP_STATUS = require('../constants/httpStatusCodes');
 
 class AuthService {
   /**
@@ -130,6 +129,38 @@ class AuthService {
         lastLoginDate: user.LastLoginDate
       }
     };
+  }
+
+  /**
+   * Changes password for a user after verifying their current password
+   * @param {number} userId 
+   * @param {string} currentPassword 
+   * @param {string} newPassword 
+   */
+  async changePassword(userId, currentPassword, newPassword) {
+    // 1. Fetch user's auth data
+    const userProfile = await authRepository.getUserProfileById(userId);
+    if (!userProfile) {
+      throw new UnauthorizedError('User profile not found', 'USER_NOT_FOUND');
+    }
+
+    const user = await authRepository.findUserByEmail(userProfile.Email);
+    if (!user) {
+      throw new UnauthorizedError('User authentication record not found', 'USER_NOT_FOUND');
+    }
+
+    // 2. Validate current password
+    const isPasswordValid = await comparePassword(currentPassword, user.PasswordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Incorrect current password', 'INCORRECT_CURRENT_PASSWORD');
+    }
+
+    // 3. Hash the new password
+    const newPasswordHash = await hashPassword(newPassword);
+
+    // 4. Persist the updated hash
+    await authRepository.updatePassword(userId, newPasswordHash);
+    logger.info(`Password updated successfully for EmployeeID: ${userId}`);
   }
 }
 

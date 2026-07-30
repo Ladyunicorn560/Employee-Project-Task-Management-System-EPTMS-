@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "eptms-api-v1-collection",
+    "name": "EPTMS – Employee Project & Task Management System API",
+    "description": "Complete API collection for the EPTMS backend. \n\n## Setup\n1. Import this collection into Postman.\n2. Create an Environment with:\n   - `base_url` = `http://localhost:5000/api/v1`\n   - `token` = (auto-populated on login)\n   - `admin_token` = (auto-populated on admin login)\n3. Run **Auth → Login** first to populate the token automatically.\n\n## Authentication\nAll endpoints (except Login and Health) require `Authorization: Bearer {{token}}`.\nThe Login request includes a **Test script** that automatically stores the JWT token in the `token` environment variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "http://localhost:5000/api/v1", "type": "string" },
+    { "key": "token",       "value": "", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health",
+            "description": "Check API and database health status. No authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const res = pm.response.json();",
+                "if (res.success && res.data && res.data.token) {",
+                "  pm.environment.set('token', res.data.token);",
+                "  pm.environment.set('admin_token', res.data.token);",
+                "  console.log('✅ JWT token stored in environment.');",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"admin@eptms.com\", \"password\": \"Password123!\"}"
+            },
+            "description": "Authenticate as Administrator. JWT token is automatically stored in environment variables."
+          }
+        },
+        {
+          "name": "Login (Project Manager)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": ["const r = pm.response.json(); if(r.success && r.data) pm.environment.set('token', r.data.token);"],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\": \"s.connor@eptms.com\", \"password\": \"Password123!\"}" }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/auth/change-password",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"currentPassword\": \"Password123!\", \"newPassword\": \"NewPassword456!\"}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        { "name": "List Employees", "request": { "method": "GET", "url": "{{base_url}}/employees?page=1&limit=20", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Employee by ID", "request": { "method": "GET", "url": "{{base_url}}/employees/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/employees",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"firstName\": \"Jane\", \"lastName\": \"Smith\", \"email\": \"jane.smith@eptms.com\", \"password\": \"Password123!\", \"phone\": \"+1-555-0199\", \"roleId\": 3, \"departmentId\": 2, \"status\": \"Active\"}" }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/employees/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"firstName\": \"System\", \"lastName\": \"Administrator\", \"email\": \"admin@eptms.com\", \"phone\": \"+1-555-0100\", \"status\": \"Active\"}" }
+          }
+        },
+        { "name": "Delete Employee", "request": { "method": "DELETE", "url": "{{base_url}}/employees/6", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Departments",
+      "item": [
+        { "name": "List Departments", "request": { "method": "GET", "url": "{{base_url}}/departments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Department by ID", "request": { "method": "GET", "url": "{{base_url}}/departments/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Department", "request": { "method": "POST", "url": "{{base_url}}/departments", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"departmentName\": \"QA Engineering\", \"description\": \"Quality assurance team\", \"isActive\": true}" } } },
+        { "name": "Update Department", "request": { "method": "PUT", "url": "{{base_url}}/departments/1", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"departmentName\": \"Executive Management\", \"isActive\": true}" } } },
+        { "name": "Delete Department", "request": { "method": "DELETE", "url": "{{base_url}}/departments/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        { "name": "List Roles", "request": { "method": "GET", "url": "{{base_url}}/roles", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Role by ID", "request": { "method": "GET", "url": "{{base_url}}/roles/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Role", "request": { "method": "POST", "url": "{{base_url}}/roles", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"roleName\": \"Auditor\", \"description\": \"Read-only audit access\", \"isActive\": true}" } } },
+        { "name": "Update Role", "request": { "method": "PUT", "url": "{{base_url}}/roles/1", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"roleName\": \"Administrator\", \"description\": \"Full system access\", \"isActive\": true}" } } },
+        { "name": "Delete Role", "request": { "method": "DELETE", "url": "{{base_url}}/roles/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        { "name": "List Projects", "request": { "method": "GET", "url": "{{base_url}}/projects?page=1&limit=20", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Project by ID", "request": { "method": "GET", "url": "{{base_url}}/projects/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Project", "request": { "method": "POST", "url": "{{base_url}}/projects", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"projectName\": \"New Initiative 2027\", \"description\": \"Strategic project\", \"status\": \"Planning\", \"startDate\": \"2027-01-01\", \"endDate\": \"2027-12-31\", \"projectManagerId\": 2, \"departmentId\": 2}" } } },
+        { "name": "Update Project", "request": { "method": "PUT", "url": "{{base_url}}/projects/1", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"Active\"}" } } },
+        { "name": "Delete Project", "request": { "method": "DELETE", "url": "{{base_url}}/projects/2", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        { "name": "List Project Members", "request": { "method": "GET", "url": "{{base_url}}/projects/1/members", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Add Project Member", "request": { "method": "POST", "url": "{{base_url}}/projects/1/members", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"employeeId\": 3}" } } },
+        { "name": "Remove Project Member", "request": { "method": "DELETE", "url": "{{base_url}}/projects/1/members/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Milestones",
+      "item": [
+        { "name": "List Milestones (Project 1)", "request": { "method": "GET", "url": "{{base_url}}/projects/1/milestones", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Milestone by ID", "request": { "method": "GET", "url": "{{base_url}}/milestones/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Milestone", "request": { "method": "POST", "url": "{{base_url}}/projects/1/milestones", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"milestoneTitle\": \"Phase 2: Feature Development\", \"description\": \"Core feature implementation\", \"dueDate\": \"2026-12-31\", \"status\": \"Not Started\"}" } } },
+        { "name": "Update Milestone", "request": { "method": "PUT", "url": "{{base_url}}/milestones/1", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"In Progress\"}" } } },
+        { "name": "Delete Milestone", "request": { "method": "DELETE", "url": "{{base_url}}/milestones/2", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        { "name": "List Tasks (Milestone 1)", "request": { "method": "GET", "url": "{{base_url}}/milestones/1/tasks", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Task by ID", "request": { "method": "GET", "url": "{{base_url}}/tasks/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Task", "request": { "method": "POST", "url": "{{base_url}}/milestones/1/tasks", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\": \"New Feature Implementation\", \"description\": \"Implement the new feature\", \"priority\": \"High\", \"status\": \"Not Started\", \"assignedTo\": 3, \"reviewerId\": 4, \"dueDate\": \"2026-12-01\"}" } } },
+        { "name": "Update Task Status", "request": { "method": "PUT", "url": "{{base_url}}/tasks/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"In Progress\"}" } } },
+        { "name": "Delete Task", "request": { "method": "DELETE", "url": "{{base_url}}/tasks/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Subtasks",
+      "item": [
+        { "name": "List Subtasks (Task 1)", "request": { "method": "GET", "url": "{{base_url}}/tasks/1/subtasks", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Subtask by ID", "request": { "method": "GET", "url": "{{base_url}}/subtasks/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Create Subtask", "request": { "method": "POST", "url": "{{base_url}}/tasks/1/subtasks", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"title\": \"Configure middleware\", \"description\": \"Set up the middleware chain\", \"priority\": \"Medium\", \"status\": \"Not Started\", \"estimatedHours\": 4.0}" } } },
+        { "name": "Update Subtask", "request": { "method": "PUT", "url": "{{base_url}}/subtasks/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"Completed\", \"actualHours\": 3.5}" } } },
+        { "name": "Delete Subtask", "request": { "method": "DELETE", "url": "{{base_url}}/subtasks/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        { "name": "List Comments (Task 1)", "request": { "method": "GET", "url": "{{base_url}}/tasks/1/comments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Comment by ID", "request": { "method": "GET", "url": "{{base_url}}/comments/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Add Comment", "request": { "method": "POST", "url": "{{base_url}}/tasks/1/comments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\": \"Implementation looks good. Ready for review.\"}" } } },
+        { "name": "Edit Comment", "request": { "method": "PUT", "url": "{{base_url}}/comments/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"content\": \"Updated: Implementation verified and approved.\"}" } } },
+        { "name": "Delete Comment", "request": { "method": "DELETE", "url": "{{base_url}}/comments/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Attachments",
+      "item": [
+        { "name": "List Attachments (Task 1)", "request": { "method": "GET", "url": "{{base_url}}/tasks/1/attachments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Attachment by ID", "request": { "method": "GET", "url": "{{base_url}}/attachments/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Register Attachment Metadata", "request": { "method": "POST", "url": "{{base_url}}/tasks/1/attachments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"fileName\": \"design-doc.pdf\", \"fileType\": \"application/pdf\", \"fileSize\": 204800, \"filePath\": \"/uploads/tasks/1/design-doc.pdf\"}" } } },
+        { "name": "Delete Attachment", "request": { "method": "DELETE", "url": "{{base_url}}/attachments/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        { "name": "List Reviews (Task 1)", "request": { "method": "GET", "url": "{{base_url}}/tasks/1/reviews", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Review by ID", "request": { "method": "GET", "url": "{{base_url}}/reviews/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Submit Review (Approve)", "request": { "method": "POST", "url": "{{base_url}}/tasks/1/reviews", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"Approved\", \"comments\": \"Code review passed. Implementation is correct.\"}" } } },
+        { "name": "Submit Review (Changes Required)", "request": { "method": "POST", "url": "{{base_url}}/tasks/1/reviews", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"status\": \"Changes Required\", \"comments\": \"Please fix the error handling in the auth module.\"}" } } },
+        { "name": "Delete Review", "request": { "method": "DELETE", "url": "{{base_url}}/reviews/5", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List My Notifications", "request": { "method": "GET", "url": "{{base_url}}/notifications?page=1&limit=20", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "List Unread Notifications", "request": { "method": "GET", "url": "{{base_url}}/notifications?isRead=false", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Get Notification by ID", "request": { "method": "GET", "url": "{{base_url}}/notifications/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Mark Notification as Read", "request": { "method": "PATCH", "url": "{{base_url}}/notifications/1/read", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Mark All Notifications as Read", "request": { "method": "PATCH", "url": "{{base_url}}/notifications/read-all", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "Overview Analytics", "request": { "method": "GET", "url": "{{base_url}}/dashboard/overview", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Project Analytics", "request": { "method": "GET", "url": "{{base_url}}/dashboard/projects", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Task Analytics", "request": { "method": "GET", "url": "{{base_url}}/dashboard/tasks", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+        { "name": "Employee Productivity", "request": { "method": "GET", "url": "{{base_url}}/dashboard/employees", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Notification Analytics", "request": { "method": "GET", "url": "{{base_url}}/dashboard/notifications", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Project Summary (PDF)", "request": { "method": "GET", "url": "{{base_url}}/reports/projects?format=pdf", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Project Summary (XLSX)", "request": { "method": "GET", "url": "{{base_url}}/reports/projects?format=xlsx", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Project Summary (CSV)", "request": { "method": "GET", "url": "{{base_url}}/reports/projects?format=csv", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Employee Workload (PDF)", "request": { "method": "GET", "url": "{{base_url}}/reports/employees?format=pdf", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Task Status (PDF)", "request": { "method": "GET", "url": "{{base_url}}/reports/tasks?format=pdf", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Milestone Progress (PDF)", "request": { "method": "GET", "url": "{{base_url}}/reports/milestones?format=pdf", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Review History (XLSX)", "request": { "method": "GET", "url": "{{base_url}}/reports/reviews?format=xlsx", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } },
+        { "name": "Notification Summary (CSV)", "request": { "method": "GET", "url": "{{base_url}}/reports/notifications?format=csv", "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }] } }
+      ]
+    }
+  ]
+}

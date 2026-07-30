@@ -4,7 +4,7 @@ const asyncHandler = require('../utils/asyncHandler');
 
 /**
  * @route POST /api/v1/auth/login
- * @desc Authenticates user with email & password and returns JWT token
+ * @desc  Authenticates user with email & password and returns JWT token
  * @access Public
  */
 const login = asyncHandler(async (req, res) => {
@@ -21,7 +21,7 @@ const login = asyncHandler(async (req, res) => {
 
 /**
  * @route GET /api/v1/auth/me
- * @desc Retrieves current authenticated user profile
+ * @desc  Retrieves current authenticated user profile
  * @access Private (JWT Authenticated)
  */
 const getProfile = asyncHandler(async (req, res) => {
@@ -36,7 +36,40 @@ const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route POST /api/v1/auth/logout
+ * @desc  Signals client to discard JWT token (stateless — token is not server-side invalidated)
+ * @access Private (JWT Authenticated)
+ */
+const logout = asyncHandler(async (req, res) => {
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    status: HTTP_STATUS.OK,
+    message: 'Logout successful. Please discard your token on the client side.'
+  });
+});
+
+/**
+ * @route PUT /api/v1/auth/change-password
+ * @desc  Authenticated user changes their own password
+ * @access Private (JWT Authenticated)
+ */
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const { currentPassword, newPassword } = req.body;
+  await authService.changePassword(userId, currentPassword, newPassword);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    status: HTTP_STATUS.OK,
+    message: 'Password changed successfully. Please log in again with your new password.'
+  });
+});
+
 module.exports = {
   login,
-  getProfile
+  getProfile,
+  logout,
+  changePassword
 };
+
