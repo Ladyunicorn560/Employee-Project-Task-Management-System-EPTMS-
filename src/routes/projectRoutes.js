@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
 const projectMemberRoutes = require('./projectMemberRoutes');
+const { projectMilestonesRouter } = require('./milestoneRoutes');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -15,6 +16,9 @@ const {
 
 // Mount nested Project Member Routes (/api/v1/projects/:projectId/members)
 router.use('/:projectId/members', projectMemberRoutes);
+
+// Mount nested Project Milestone Routes (/api/v1/projects/:projectId/milestones)
+router.use('/:projectId/milestones', projectMilestonesRouter);
 
 /**
  * @route GET /api/v1/projects
