@@ -2,6 +2,7 @@ const express = require('express');
 const projectMilestonesRouter = express.Router({ mergeParams: true });
 const directMilestonesRouter = express.Router();
 const milestoneController = require('../controllers/milestoneController');
+const { milestoneTasksRouter } = require('./taskRoutes');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -12,6 +13,9 @@ const {
   milestoneIdParamSchema,
   getMilestonesQuerySchema
 } = require('../validators/milestoneValidators');
+
+// Mount nested Task Routes (/api/v1/milestones/:milestoneId/tasks)
+directMilestonesRouter.use('/:milestoneId/tasks', milestoneTasksRouter);
 
 // -----------------------------------------------------------------------------
 // Nested Routes (/api/v1/projects/:projectId/milestones)
