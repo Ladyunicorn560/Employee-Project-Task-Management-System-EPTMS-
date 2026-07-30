@@ -1,6 +1,7 @@
 const taskRepository = require('../repositories/taskRepository');
 const projectRepository = require('../repositories/projectRepository');
 const projectMemberRepository = require('../repositories/projectMemberRepository');
+const notificationService = require('./notificationService');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
@@ -91,6 +92,22 @@ class TaskService {
         currentUser.userId,
         transaction
       );
+
+      // Trigger Task Assigned Notification if assigned
+      if (data.assignedEmployeeId) {
+        await notificationService.createEventNotification(
+          {
+            recipientId: data.assignedEmployeeId,
+            triggeredById: currentUser.userId,
+            taskId: newTaskId,
+            projectId: hierarchy.ProjectID,
+            notificationType: 'Task Assigned',
+            message: `You have been assigned to task '${data.taskTitle}' in project '${hierarchy.ProjectName}'.`,
+            createdBy: currentUser.userId
+          },
+          transaction
+        );
+      }
     });
 
     logger.info(`Task created successfully [ID: ${newTaskId}, Title: ${data.taskTitle}, MilestoneID: ${milestoneId}, CreatedBy: ${currentUser.userId}]`);
@@ -102,13 +119,11 @@ class TaskService {
    * Fetches paginated & filtered tasks list for a milestone
    */
   async getTasksByMilestoneId(milestoneId, queryParams, currentUser) {
-    // 1. Verify milestone exists
     const hierarchy = await taskRepository.getMilestoneAndProjectHierarchy(milestoneId);
     if (!hierarchy) {
       throw new NotFoundError(`Milestone with ID ${milestoneId} was not found`);
     }
 
-    // 2. Employee Access Guard
     if (currentUser.roleName === ROLES.EMPLOYEE) {
       const isAssigned = await projectRepository.isEmployeeAssignedToProject(hierarchy.ProjectID, currentUser.userId);
       if (!isAssigned) {
@@ -129,7 +144,6 @@ class TaskService {
       throw new NotFoundError(`Task with ID ${taskId} was not found`);
     }
 
-    // Employee Access Guard
     if (currentUser.roleName === ROLES.EMPLOYEE) {
       const isAssigned = await projectRepository.isEmployeeAssignedToProject(task.projectId, currentUser.userId);
       if (!isAssigned) {
@@ -145,13 +159,11 @@ class TaskService {
    * Updates an existing task record (Admin, assigned PM, or assigned Employee)
    */
   async updateTask(taskId, updateData, currentUser) {
-    // 1. Verify task exists
     const existing = await taskRepository.findById(taskId);
     if (!existing) {
       throw new NotFoundError(`Task with ID ${taskId} was not found`);
     }
 
-    // 2. Role-based Update Guards
     if (currentUser.roleName === ROLES.PROJECT_MANAGER && existing.projectManagerId !== currentUser.userId) {
       logger.warn(`Unauthorized task update attempt: PM ${currentUser.email} tried to update Task ID ${taskId}`);
       throw new ForbiddenError('Access denied. You can only update tasks for projects you manage.');
@@ -163,7 +175,6 @@ class TaskService {
         throw new ForbiddenError('Access denied. You are only authorized to update tasks assigned to you.');
       }
 
-      // Employees can ONLY update status, actualHours, or description/comments
       const restrictedFields = ['taskTitle', 'assignedEmployeeId', 'dueDate', 'priority', 'estimatedHours'];
       const attemptedRestrictedField = restrictedFields.find((f) => updateData[f] !== undefined);
       if (attemptedRestrictedField) {
@@ -172,7 +183,6 @@ class TaskService {
       }
     }
 
-    // 3. Task Title uniqueness check if changing
     if (updateData.taskTitle && updateData.taskTitle.toLowerCase() !== existing.taskTitle.toLowerCase()) {
       const titleExists = await taskRepository.findTitleInMilestone(existing.milestoneId, updateData.taskTitle, taskId);
       if (titleExists) {
@@ -180,7 +190,6 @@ class TaskService {
       }
     }
 
-    // 4. Validate Assignee if changing
     if (updateData.assignedEmployeeId && updateData.assignedEmployeeId !== existing.assignedEmployee?.id) {
       const assignee = await projectMemberRepository.getEmployeeDetails(updateData.assignedEmployeeId);
       if (!assignee) {
@@ -199,7 +208,6 @@ class TaskService {
       }
     }
 
-    // 5. Validate DueDate if changing
     if (updateData.dueDate) {
       const dueDateObj = new Date(updateData.dueDate);
       const msDueDateObj = new Date(existing.milestoneDueDate);
@@ -213,16 +221,46 @@ class TaskService {
       }
     }
 
-    // 6. Update Task and Recalculate Progress inside SQL Transaction
     await taskRepository.withTransaction(async (transaction) => {
       await taskRepository.update(taskId, updateData, currentUser.userId, transaction);
 
-      // Recalculate Milestone & Project Progress if status changed
       if (updateData.status && updateData.status !== existing.status) {
         await taskRepository.recalculateMilestoneAndProjectProgress(
           existing.milestoneId,
           existing.projectId,
           currentUser.userId,
+          transaction
+        );
+
+        if (updateData.status === 'Completed') {
+          // Notify PM & Assignee of completion
+          await notificationService.createEventNotification(
+            {
+              recipientId: existing.projectManagerId,
+              triggeredById: currentUser.userId,
+              taskId,
+              projectId: existing.projectId,
+              notificationType: 'Task Completed',
+              message: `Task '${existing.taskTitle}' has been marked as Completed.`,
+              createdBy: currentUser.userId
+            },
+            transaction
+          );
+        }
+      }
+
+      // Notify newly assigned employee if changed
+      if (updateData.assignedEmployeeId && updateData.assignedEmployeeId !== existing.assignedEmployee?.id) {
+        await notificationService.createEventNotification(
+          {
+            recipientId: updateData.assignedEmployeeId,
+            triggeredById: currentUser.userId,
+            taskId,
+            projectId: existing.projectId,
+            notificationType: 'Task Assigned',
+            message: `You have been assigned to task '${existing.taskTitle}'.`,
+            createdBy: currentUser.userId
+          },
           transaction
         );
       }
@@ -237,19 +275,16 @@ class TaskService {
    * Soft deletes a task record (Admin & PM managing project)
    */
   async deleteTask(taskId, currentUser) {
-    // 1. Verify task exists
     const existing = await taskRepository.findById(taskId);
     if (!existing) {
       throw new NotFoundError(`Task with ID ${taskId} was not found`);
     }
 
-    // 2. PM Ownership Guard
     if (currentUser.roleName === ROLES.PROJECT_MANAGER && existing.projectManagerId !== currentUser.userId) {
       logger.warn(`Unauthorized task delete attempt: PM ${currentUser.email} tried to delete Task ID ${taskId}`);
       throw new ForbiddenError('Access denied. You can only delete tasks for projects you manage.');
     }
 
-    // 3. Perform Soft Delete and Progress Recalculation inside SQL Transaction
     await taskRepository.withTransaction(async (transaction) => {
       await taskRepository.softDelete(taskId, currentUser.userId, transaction);
       await taskRepository.recalculateMilestoneAndProjectProgress(
