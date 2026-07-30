@@ -10,11 +10,15 @@ const helmetMiddleware = helmet({
   crossOriginEmbedderPolicy: false
 });
 
+// Parsed allowed origins list
+const allowedOrigins = env.CORS_ORIGIN
+  ? env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+  : ['http://localhost:3000'];
+
 // CORS Configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman) or matched allowed origins
-    if (!origin || origin === env.CORS_ORIGIN || env.NODE_ENV === 'development') {
+    if (!origin || allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       logger.warn(`CORS blocked request from origin: ${origin}`);
@@ -22,7 +26,8 @@ const corsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID'],
+  exposedHeaders: ['X-Request-ID'],
   credentials: true,
   maxAge: 86400 // 24 hours
 };

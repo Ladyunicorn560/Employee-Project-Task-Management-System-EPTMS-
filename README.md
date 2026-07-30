@@ -5,9 +5,9 @@ Production-ready Node.js & Express backend API for the Employee Project & Task M
 ## Technology Stack
 - **Runtime:** Node.js (v18+)
 - **Framework:** Express.js
-- **Database:** Microsoft SQL Server (`mssql` / `tedious`)
+- **Database:** Microsoft SQL Server (`mssql` / `msnodesqlv8`)
 - **Authentication:** JWT Bearer Token (HMAC-SHA256)
-- **Security:** Helmet, CORS, Express-Rate-Limit, Bcrypt.js
+- **Security:** Helmet, CORS, Express-Rate-Limit, Bcrypt.js, Compression
 - **Validation:** Zod schema validation
 - **Logging:** Winston structured logger
 
@@ -17,7 +17,7 @@ Production-ready Node.js & Express backend API for the Employee Project & Task M
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- Microsoft SQL Server (`Shiksha`) with database `EPTMS_DB` configured and seeded.
+- Microsoft SQL Server with database `EPTMS_DB` configured and seeded.
 
 ### Installation
 1. Install dependencies:
@@ -29,7 +29,7 @@ Production-ready Node.js & Express backend API for the Employee Project & Task M
    ```env
    PORT=5000
    NODE_ENV=development
-   DB_SERVER=Shiksha
+   DB_SERVER=<your-sql-server-name>
    DB_NAME=EPTMS_DB
    DB_TRUST_SERVER_CERTIFICATE=true
    DB_ENCRYPT=false
@@ -60,12 +60,12 @@ Sample Success Response (`200 OK`):
   "success": true,
   "status": 200,
   "message": "EPTMS Backend API is operating normally",
-  "timestamp": "2026-07-30T23:59:00.000Z",
+  "timestamp": "2026-07-31T00:00:00.000Z",
   "services": {
     "server": "UP",
     "database": "UP",
     "details": {
-      "serverName": "Shiksha",
+      "serverName": "<configured-server>",
       "databaseName": "EPTMS_DB"
     }
   }

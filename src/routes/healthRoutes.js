@@ -2,14 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { checkDatabaseHealth } = require('../config/db');
 const HTTP_STATUS = require('../constants/httpStatusCodes');
+const asyncHandler = require('../utils/asyncHandler');
 
 /**
  * @route GET /api/v1/health
  * @desc System health check endpoint verifying server & SQL Server database status
  * @access Public
  */
-router.get('/health', async (req, res, next) => {
-  try {
+router.get(
+  '/health',
+  asyncHandler(async (req, res) => {
     const dbHealth = await checkDatabaseHealth();
 
     if (!dbHealth) {
@@ -39,9 +41,7 @@ router.get('/health', async (req, res, next) => {
         }
       }
     });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 module.exports = router;
