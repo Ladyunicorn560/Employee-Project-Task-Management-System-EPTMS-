@@ -1,0 +1,136 @@
+const authRepository = require('../repositories/authRepository');
+const { comparePassword } = require('../utils/crypto');
+const { generateToken } = require('../utils/jwt');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+const ForbiddenError = require('../errors/ForbiddenError');
+const AppError = require('../errors/AppError');
+const logger = require('../utils/logger');
+const HTTP_STATUS = require('../constants/httpStatusCodes');
+
+class AuthService {
+  /**
+   * Authenticates user credentials and returns JWT session payload
+   * @param {string} email 
+   * @param {string} password 
+   */
+  async login(email, password) {
+    // 1. Fetch user record
+    const user = await authRepository.findUserByEmail(email);
+
+    // 2. Reject if user does not exist or is soft-deleted (Generic error message to prevent enumeration)
+    if (!user || user.IsDeleted) {
+      logger.warn(`Failed login attempt: User not found or deleted [Email: ${email}]`);
+      throw new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
+    }
+
+    // 3. Reject if account status is Inactive or Suspended
+    if (user.Status !== 'Active') {
+      logger.warn(`Login rejected: Account is ${user.Status} [Email: ${email}, ID: ${user.EmployeeID}]`);
+      throw new ForbiddenError(`Account is ${user.Status.toLowerCase()}. Access denied.`, 'ACCOUNT_DISABLED');
+    }
+
+    // 4. Check for active LockoutUntil timer
+    if (user.LockoutUntil && new Date(user.LockoutUntil) > new Date()) {
+      logger.warn(`Login rejected: Account locked out [Email: ${email}, LockoutUntil: ${user.LockoutUntil}]`);
+      throw new AppError(
+        'Account is temporarily locked due to 5 consecutive failed login attempts. Please try again in 15 minutes.',
+        423, // Locked
+        'ACCOUNT_LOCKED'
+      );
+    }
+
+    // 5. Verify password hash using bcrypt
+    const isPasswordValid = user.PasswordHash ? await comparePassword(password, user.PasswordHash) : false;
+
+    // 6. Handle password verification failure
+    if (!isPasswordValid) {
+      const newFailedAttempts = user.FailedLoginAttempts + 1;
+
+      if (newFailedAttempts >= 5) {
+        // Lock account for 15 minutes (900,000 ms)
+        const lockoutUntil = new Date(Date.now() + 15 * 60 * 1000);
+        await authRepository.recordFailedLogin(user.EmployeeID, newFailedAttempts, lockoutUntil);
+        
+        logger.warn(`Account locked out after 5 failed attempts [Email: ${email}, EmployeeID: ${user.EmployeeID}]`);
+        
+        throw new AppError(
+          'Account locked out due to 5 consecutive failed login attempts. Please try again in 15 minutes.',
+          423,
+          'ACCOUNT_LOCKED'
+        );
+      } else {
+        await authRepository.recordFailedLogin(user.EmployeeID, newFailedAttempts, null);
+        logger.warn(`Failed login attempt: Incorrect password [Email: ${email}, Attempts: ${newFailedAttempts}/5]`);
+        throw new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
+      }
+    }
+
+    // 7. Handle password verification success (Reset lockout counters & update LastLoginDate)
+    await authRepository.recordSuccessfulLogin(user.EmployeeID);
+    logger.info(`Successful login for user: ${email} [Role: ${user.RoleName}, ID: ${user.EmployeeID}]`);
+
+    // 8. Generate JWT Token
+    const tokenPayload = {
+      userId: user.EmployeeID,
+      email: user.Email,
+      roleId: user.RoleID,
+      roleName: user.RoleName
+    };
+
+    const token = generateToken(tokenPayload);
+
+    // 9. Format response payload (Excluding PasswordHash)
+    return {
+      token,
+      user: {
+        id: user.EmployeeID,
+        email: user.Email,
+        firstName: user.FirstName,
+        lastName: user.LastName,
+        role: {
+          id: user.RoleID,
+          name: user.RoleName
+        },
+        department: {
+          id: user.DepartmentID,
+          name: user.DepartmentName
+        },
+        status: user.Status,
+        lastLoginDate: new Date().toISOString()
+      }
+    };
+  }
+
+  /**
+   * Retrieves profile details for currently authenticated user
+   * @param {number} userId 
+   */
+  async getProfile(userId) {
+    const user = await authRepository.getUserProfileById(userId);
+
+    if (!user || user.IsDeleted || user.Status !== 'Active') {
+      throw new UnauthorizedError('User account is inactive or no longer exists', 'USER_NOT_ACTIVE');
+    }
+
+    return {
+      user: {
+        id: user.EmployeeID,
+        email: user.Email,
+        firstName: user.FirstName,
+        lastName: user.LastName,
+        role: {
+          id: user.RoleID,
+          name: user.RoleName
+        },
+        department: {
+          id: user.DepartmentID,
+          name: user.DepartmentName
+        },
+        status: user.Status,
+        lastLoginDate: user.LastLoginDate
+      }
+    };
+  }
+}
+
+module.exports = new AuthService();
