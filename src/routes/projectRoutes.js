@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const projectController = require('../controllers/projectController');
+const projectMemberRoutes = require('./projectMemberRoutes');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -11,6 +12,9 @@ const {
   projectIdParamSchema,
   getProjectsQuerySchema
 } = require('../validators/projectValidators');
+
+// Mount nested Project Member Routes (/api/v1/projects/:projectId/members)
+router.use('/:projectId/members', projectMemberRoutes);
 
 /**
  * @route GET /api/v1/projects
