@@ -20,6 +20,18 @@ const Error403Page = lazy(() => import('../pages/errors/Error403Page'));
 const Error404Page = lazy(() => import('../pages/errors/Error404Page'));
 const Error500Page = lazy(() => import('../pages/errors/Error500Page'));
 
+// Employee Pages
+const EmployeeListPage = lazy(() => import('../pages/employees/EmployeeListPage'));
+const EmployeeDetailsPage = lazy(() => import('../pages/employees/EmployeeDetailsPage'));
+const EmployeeCreatePage = lazy(() => import('../pages/employees/EmployeeCreatePage'));
+const EmployeeEditPage = lazy(() => import('../pages/employees/EmployeeEditPage'));
+
+// Department Pages
+const DepartmentListPage = lazy(() => import('../pages/departments/DepartmentListPage'));
+const DepartmentDetailsPage = lazy(() => import('../pages/departments/DepartmentDetailsPage'));
+const DepartmentCreatePage = lazy(() => import('../pages/departments/DepartmentCreatePage'));
+const DepartmentEditPage = lazy(() => import('../pages/departments/DepartmentEditPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -72,38 +84,70 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Employees — Admin + PM */}
+        {/* Employees Module */}
         <Route
           path={ROUTES.EMPLOYEES}
           element={
             <ProtectedRoute allowedRoles={MANAGER_ROLES}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Employees"
-                  description="Manage employee records, onboarding, and profiles. Full implementation coming in Phase 2."
-                  icon={PeopleAltRoundedIcon}
-                  phase="Phase 2"
-                  module="People"
-                />
-              </MainLayout>
+              <MainLayout><EmployeeListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.EMPLOYEES}/create`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><EmployeeCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.EMPLOYEES}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><EmployeeDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.EMPLOYEES}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><EmployeeEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* Departments — Admin only */}
+        {/* Departments Module */}
         <Route
           path={ROUTES.DEPARTMENTS}
           element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><DepartmentListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.DEPARTMENTS}/create`}
+          element={
             <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Departments"
-                  description="Configure and manage company departments and organizational structure. Coming in Phase 3."
-                  icon={CorporateFareRoundedIcon}
-                  phase="Phase 3"
-                  module="Organization"
-                />
-              </MainLayout>
+              <MainLayout><DepartmentCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.DEPARTMENTS}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><DepartmentDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.DEPARTMENTS}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><DepartmentEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />

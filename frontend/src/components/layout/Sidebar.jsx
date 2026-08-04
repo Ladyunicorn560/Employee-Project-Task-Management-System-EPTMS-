@@ -45,6 +45,9 @@ const ALL_NAV_ITEMS = {
   ],
   [ROLES.PROJECT_MANAGER]: [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
+    { id: 'div-people', divider: true, label: 'People & Org' },
+    { id: 'employees', label: 'Employees', icon: PeopleAltRoundedIcon, path: ROUTES.EMPLOYEES },
+    { id: 'departments', label: 'Departments', icon: CorporateFareRoundedIcon, path: ROUTES.DEPARTMENTS },
     { id: 'div-work', divider: true, label: 'Work' },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
