@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, TextField, Typography, InputAdornment,
-  IconButton, Alert, Divider, CircularProgress,
+  IconButton, Alert, Divider, FormControlLabel, Checkbox,
 } from '@mui/material';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
+import LockPersonOutlinedIcon from '@mui/icons-material/LockPersonOutlined';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 
@@ -19,52 +20,102 @@ import { VALIDATION } from '../../utils/validationUtils';
 
 /**
  * LoginPage
- * Public authentication screen.
- * On success, redirects to the previously attempted route or /dashboard.
+ * Full backend-integrated login form.
+ * Features: Remember Me, password visibility, specific error messages,
+ * account lockout handling, toast notifications.
  */
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, getRememberedEmail } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
 
   const from = location.state?.from?.pathname || ROUTES.DASHBOARD;
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({ mode: 'onBlur' });
 
-  const onSubmit = async ({ email, password }) => {
+  // Pre-fill remembered email on mount
+  useEffect(() => {
+    const remembered = getRememberedEmail?.();
+    if (remembered) {
+      setValue('email', remembered);
+      setValue('rememberMe', true);
+    }
+  }, [getRememberedEmail, setValue]);
+
+  const onSubmit = async ({ email, password, rememberMe }) => {
     setLoginError('');
+    setIsLocked(false);
     try {
-      await login(email.trim(), password);
-      toast.success('Welcome back!');
+      await login(email.trim(), password, rememberMe);
+      toast.success('Welcome back! You have signed in successfully.', {
+        icon: '👋',
+        autoClose: 3000,
+      });
       navigate(from, { replace: true });
     } catch (err) {
-      const message =
-        err?.response?.data?.message || 'Invalid email or password. Please try again.';
-      setLoginError(message);
+      const status = err?.response?.status;
+      const code = err?.response?.data?.errorCode;
+      const serverMsg = err?.response?.data?.message;
+
+      if (status === 423 || code === 'ACCOUNT_LOCKED') {
+        setIsLocked(true);
+        setLoginError(
+          'Your account has been temporarily locked after 5 failed attempts. Please try again in 15 minutes.'
+        );
+      } else if (status === 403 || code === 'ACCOUNT_DISABLED') {
+        setLoginError(
+          serverMsg || 'Your account is inactive or suspended. Please contact your administrator.'
+        );
+      } else if (status === 401 || code === 'INVALID_CREDENTIALS') {
+        setLoginError('Invalid email or password. Please check your credentials and try again.');
+      } else {
+        setLoginError(serverMsg || 'Unable to sign in. Please try again later.');
+      }
     }
   };
 
   return (
     <AuthLayout>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3.5 }}>
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 2.5,
+            boxShadow: '0 4px 14px rgba(25,118,210,0.3)',
+          }}
+        >
+          <LockPersonOutlinedIcon sx={{ color: '#fff', fontSize: 22 }} />
+        </Box>
         <Typography variant="h5" fontWeight={700} color="text.primary" gutterBottom>
-          Sign in to EPTMS
+          Sign in to your account
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Enter your credentials to access the management system.
+          Enter your credentials to access the EPTMS platform.
         </Typography>
       </Box>
 
       {/* Error Alert */}
       {loginError && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert
+          severity={isLocked ? 'warning' : 'error'}
+          sx={{ mb: 2.5, borderRadius: 2, fontSize: '0.8125rem' }}
+          icon={isLocked ? undefined : undefined}
+        >
           {loginError}
         </Alert>
       )}
@@ -78,19 +129,19 @@ const LoginPage = () => {
           label="Email Address"
           type="email"
           autoComplete="email"
-          autoFocus
+          autoFocus={!getRememberedEmail?.()}
           error={!!errors.email}
           helperText={errors.email?.message}
           slotProps={{
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <EmailOutlinedIcon sx={{ color: 'text.disabled', fontSize: 20 }} />
+                  <EmailOutlinedIcon sx={{ color: 'text.disabled', fontSize: 19 }} />
                 </InputAdornment>
               ),
             },
           }}
-          sx={{ mb: 2.5 }}
+          sx={{ mb: 2 }}
           {...register('email', VALIDATION.email)}
         />
 
@@ -107,12 +158,18 @@ const LoginPage = () => {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <LockOutlinedIcon sx={{ color: 'text.disabled', fontSize: 20 }} />
+                  <LockOutlinedIcon sx={{ color: 'text.disabled', fontSize: 19 }} />
                 </InputAdornment>
               ),
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword((p) => !p)} edge="end" size="small">
+                  <IconButton
+                    onClick={() => setShowPassword((p) => !p)}
+                    edge="end"
+                    size="small"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
                     {showPassword
                       ? <VisibilityOffOutlinedIcon fontSize="small" />
                       : <VisibilityOutlinedIcon fontSize="small" />}
@@ -121,8 +178,26 @@ const LoginPage = () => {
               ),
             },
           }}
-          sx={{ mb: 3 }}
+          sx={{ mb: 1.5 }}
           {...register('password', VALIDATION.password)}
+        />
+
+        {/* Remember Me */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              id="login-remember-me"
+              size="small"
+              color="primary"
+              {...register('rememberMe')}
+            />
+          }
+          label={
+            <Typography variant="body2" color="text.secondary">
+              Remember my email
+            </Typography>
+          }
+          sx={{ mb: 2.5, ml: -0.5 }}
         />
 
         {/* Submit */}
@@ -133,19 +208,19 @@ const LoginPage = () => {
           fullWidth
           loading={isSubmitting}
           size="large"
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, py: 1.25 }}
         >
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </AppButton>
 
-        <Divider sx={{ my: 2 }}>
+        <Divider sx={{ my: 2.5 }}>
           <Typography variant="caption" color="text.disabled">
             Employee Project & Task Management System
           </Typography>
         </Divider>
 
         <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center' }}>
-          Contact your administrator if you cannot access your account.
+          Forgot your password? Contact your system administrator.
         </Typography>
       </Box>
     </AuthLayout>

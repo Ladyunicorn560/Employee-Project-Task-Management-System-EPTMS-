@@ -1,7 +1,7 @@
-import { Box, Typography, Button, Breadcrumbs, Chip } from '@mui/material';
-import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
+import { Box, Typography, Button, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import AppBreadcrumbs from '../../components/common/AppBreadcrumbs';
 
 /**
  * PlaceholderPage
@@ -23,24 +23,16 @@ const PlaceholderPage = ({
 }) => {
   const navigate = useNavigate();
 
+  const breadcrumbItems = [];
+  if (module) {
+    breadcrumbItems.push({ label: module });
+  }
+  breadcrumbItems.push({ label: title });
+
   return (
     <Box>
       {/* Breadcrumb */}
-      <Breadcrumbs
-        separator={<NavigateNextRoundedIcon fontSize="small" />}
-        sx={{ mb: 2 }}
-      >
-        <Typography
-          variant="body2"
-          color="primary"
-          sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-          onClick={() => navigate(ROUTES.DASHBOARD)}
-        >
-          Dashboard
-        </Typography>
-        {module && <Typography variant="body2" color="text.secondary">{module}</Typography>}
-        <Typography variant="body2" color="text.primary" fontWeight={600}>{title}</Typography>
-      </Breadcrumbs>
+      <AppBreadcrumbs items={breadcrumbItems} />
 
       {/* Main Card */}
       <Box

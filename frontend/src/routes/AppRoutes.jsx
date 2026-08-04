@@ -13,6 +13,7 @@ import { MANAGER_ROLES, ADMIN_ROLES, AUTHENTICATED_ROLES } from '../constants/ro
 // Lazy-loaded pages
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage'));
+const ChangePasswordPage = lazy(() => import('../pages/auth/ChangePasswordPage'));
 const PlaceholderPage = lazy(() => import('../pages/placeholders/PlaceholderPage'));
 const Error401Page = lazy(() => import('../pages/errors/Error401Page'));
 const Error403Page = lazy(() => import('../pages/errors/Error403Page'));
@@ -28,6 +29,7 @@ import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import RateReviewRoundedIcon from '@mui/icons-material/RateReviewRounded';
 
 /**
  * AppRoutes
@@ -208,6 +210,36 @@ const AppRoutes = () => {
                   icon={SettingsRoundedIcon}
                   phase="Phase 10"
                   module="Administration"
+                />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Change Password — All authenticated */}
+        <Route
+          path={ROUTES.CHANGE_PASSWORD}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout>
+                <ChangePasswordPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Reviews — Reviewer and Admin */}
+        <Route
+          path="/reviews"
+          element={
+            <ProtectedRoute allowedRoles={['Reviewer', 'Administrator']}>
+              <MainLayout>
+                <PlaceholderPage
+                  title="Reviews"
+                  description="Manage task reviews and approvals. Coming in Phase 6."
+                  icon={RateReviewRoundedIcon}
+                  phase="Phase 6"
+                  module="Work"
                 />
               </MainLayout>
             </ProtectedRoute>

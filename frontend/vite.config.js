@@ -20,9 +20,13 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          mui: ['@mui/material', '@mui/icons-material'],
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@mui')) {
+              return 'mui';
+            }
+            return 'vendor';
+          }
         },
       },
     },

@@ -27,6 +27,7 @@ export const ROUTES = {
   // User
   PROFILE: '/profile',
   SETTINGS: '/settings',
+  CHANGE_PASSWORD: '/change-password',
 
   // Errors
   ERROR_401: '/401',

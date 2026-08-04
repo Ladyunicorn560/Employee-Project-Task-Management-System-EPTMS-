@@ -92,9 +92,14 @@ export const API = {
     MARK_ALL_READ: '/notifications/read-all',
   },
 
-  // ─── Dashboard ─────────────────────────────────────────────────────
+  // ─── Dashboard ─────────────────────────────────────────────────
   DASHBOARD: {
     BASE: '/dashboard',
+    OVERVIEW: '/dashboard/overview',
+    PROJECTS: '/dashboard/projects',
+    TASKS: '/dashboard/tasks',
+    EMPLOYEES: '/dashboard/employees',
+    NOTIFICATIONS: '/dashboard/notifications',
   },
 
   // ─── Reports ───────────────────────────────────────────────────────

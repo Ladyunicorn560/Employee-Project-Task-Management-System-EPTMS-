@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { getToken, getUser, setToken, setUser, clearAuth } from '../utils/tokenUtils';
+import { lsGet, lsSet } from '../utils/storageUtils';
 import axiosInstance from '../api/axiosInstance';
 import { API } from '../api/endpoints';
 
@@ -7,10 +8,18 @@ import { API } from '../api/endpoints';
  * AuthContext
  * Provides authentication state and actions to the entire application.
  *
+ * User shape (normalized — flat for easy access):
+ * {
+ *   id, email, firstName, lastName,
+ *   roleName, roleId,
+ *   departmentName, departmentId,
+ *   status, lastLoginDate
+ * }
+ *
  * Exposes:
- *   user          — Current user object (or null)
+ *   user          — Normalized current user object (or null)
  *   token         — JWT token string (or null)
- *   isAuthenticated — Boolean: is the user logged in?
+ *   isAuthenticated — Boolean
  *   isLoading     — Boolean: initial auth check in progress
  *   login(email, password) — Authenticate and store credentials
  *   logout()      — Clear auth state and storage
@@ -18,6 +27,29 @@ import { API } from '../api/endpoints';
  */
 
 export const AuthContext = createContext(null);
+
+const REMEMBER_EMAIL_KEY = 'eptms_remember_email';
+
+/**
+ * Normalize backend user response to flat shape.
+ * Backend returns: user.role.name, user.department.name
+ * We normalize to: user.roleName, user.departmentName
+ */
+const normalizeUser = (rawUser) => {
+  if (!rawUser) return null;
+  return {
+    id: rawUser.id,
+    email: rawUser.email,
+    firstName: rawUser.firstName || '',
+    lastName: rawUser.lastName || '',
+    roleName: rawUser.role?.name || rawUser.roleName || '',
+    roleId: rawUser.role?.id || rawUser.roleId || null,
+    departmentName: rawUser.department?.name || rawUser.departmentName || '',
+    departmentId: rawUser.department?.id || rawUser.departmentId || null,
+    status: rawUser.status || 'Active',
+    lastLoginDate: rawUser.lastLoginDate || null,
+  };
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
@@ -31,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
     if (storedToken && storedUser) {
       setTokenState(storedToken);
-      setUserState(storedUser);
+      setUserState(storedUser); // already normalized on last login
     }
 
     setIsLoading(false);
@@ -40,24 +72,31 @@ export const AuthProvider = ({ children }) => {
   // ─── Login ────────────────────────────────────────────────────────────────
   /**
    * Authenticate user with email and password.
-   * Stores token and user in localStorage on success.
+   * Normalizes and stores the user object flat.
    * @param {string} email
    * @param {string} password
-   * @returns {Promise<object>} User data
+   * @param {boolean} rememberEmail - Store email for next login
+   * @returns {Promise<object>} Normalized user
    */
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, rememberEmail = false) => {
     const response = await axiosInstance.post(API.AUTH.LOGIN, { email, password });
-    const { token: newToken, user: userData, employee } = response.data.data;
+    const { token: newToken, user: rawUser } = response.data.data;
 
-    // Merge employee profile into user if present
-    const fullUser = { ...userData, ...(employee || {}) };
+    const normalized = normalizeUser(rawUser);
 
     setToken(newToken);
-    setUser(fullUser);
+    setUser(normalized);
     setTokenState(newToken);
-    setUserState(fullUser);
+    setUserState(normalized);
 
-    return fullUser;
+    // Handle Remember Me
+    if (rememberEmail) {
+      lsSet(REMEMBER_EMAIL_KEY, email);
+    } else {
+      lsSet(REMEMBER_EMAIL_KEY, '');
+    }
+
+    return normalized;
   }, []);
 
   // ─── Logout ───────────────────────────────────────────────────────────────
@@ -68,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await axiosInstance.post(API.AUTH.LOGOUT);
     } catch {
-      // Ignore errors — always clear local state regardless
+      // Always clear local state regardless of backend response
     } finally {
       clearAuth();
       setTokenState(null);
@@ -78,21 +117,28 @@ export const AuthProvider = ({ children }) => {
 
   // ─── Refresh User Profile ─────────────────────────────────────────────────
   /**
-   * Re-fetch the current user profile from the API.
-   * Useful after profile updates.
+   * Re-fetch and re-normalize the current user profile from the API.
+   * Useful after profile updates or role changes.
    */
   const refreshUser = useCallback(async () => {
     try {
       const response = await axiosInstance.get(API.AUTH.ME);
-      const updatedUser = response.data.data;
-      setUser(updatedUser);
-      setUserState(updatedUser);
-      return updatedUser;
+      // getProfile returns { user: { ... } }
+      const rawUser = response.data.data?.user || response.data.data;
+      const normalized = normalizeUser(rawUser);
+      setUser(normalized);
+      setUserState(normalized);
+      return normalized;
     } catch {
-      // If refresh fails (e.g. token expired), log out
-      logout();
+      // If refresh fails (e.g. token expired), force logout
+      await logout();
     }
   }, [logout]);
+
+  // ─── Get Remembered Email ─────────────────────────────────────────────────
+  const getRememberedEmail = useCallback(() => {
+    return lsGet(REMEMBER_EMAIL_KEY, '');
+  }, []);
 
   // ─── Context Value ────────────────────────────────────────────────────────
   const value = {
@@ -103,6 +149,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     refreshUser,
+    getRememberedEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

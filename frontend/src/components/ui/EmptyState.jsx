@@ -1,20 +1,21 @@
 import { Box, Typography, Button } from '@mui/material';
-import InboxIcon from '@mui/icons-material/Inbox';
+import InboxRoundedIcon from '@mui/icons-material/InboxRounded';
 
 /**
  * EmptyState
- * Displayed when a list or table has no data to show.
+ * Displayed when a list or table has no records at all.
+ * Use NoData when a search/filter yields zero results.
  *
- * @param {string} title - Main heading (default: "No data found")
- * @param {string} description - Subtext message
- * @param {ReactNode} icon - Custom icon (default: InboxIcon)
- * @param {string} actionLabel - Optional action button label
- * @param {function} onAction - Optional action button handler
+ * @param {string} title - Main heading
+ * @param {string} description - Helper message
+ * @param {ComponentType} icon - MUI icon component (default: InboxRoundedIcon)
+ * @param {string} actionLabel - Primary action button label
+ * @param {function} onAction - Primary action handler
  */
 const EmptyState = ({
-  title = 'No data found',
-  description = 'There is nothing to display here yet.',
-  icon: Icon = InboxIcon,
+  title = 'Nothing here yet',
+  description = 'Get started by creating your first record.',
+  icon: Icon = InboxRoundedIcon,
   actionLabel,
   onAction,
 }) => {
@@ -25,39 +26,70 @@ const EmptyState = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        py: 8,
-        px: 3,
+        py: { xs: 6, md: 10 },
+        px: 4,
         textAlign: 'center',
       }}
     >
+      {/* Illustrated icon container */}
       <Box
         sx={{
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          backgroundColor: 'primary.light',
-          opacity: 0.12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           position: 'relative',
+          width: 100,
+          height: 100,
           mb: 3,
         }}
       >
-        <Box sx={{ position: 'absolute' }}>
-          <Icon sx={{ fontSize: 40, color: 'primary.main', opacity: 1 / 0.12 * 0.5 }} />
+        {/* Outer glow ring */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(25,118,210,0.10) 0%, rgba(25,118,210,0.04) 70%)',
+          }}
+        />
+        {/* Inner circle */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: '16px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(25,118,210,0.09)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon sx={{ fontSize: 34, color: 'primary.main' }} />
         </Box>
       </Box>
 
-      <Typography variant="h6" color="text.primary" fontWeight={600} gutterBottom>
+      <Typography
+        variant="h6"
+        fontWeight={700}
+        color="text.primary"
+        sx={{ mb: 1 }}
+      >
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 320, mb: actionLabel ? 3 : 0 }}>
+
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ maxWidth: 360, lineHeight: 1.75, mb: actionLabel ? 3.5 : 0 }}
+      >
         {description}
       </Typography>
 
       {actionLabel && onAction && (
-        <Button variant="contained" color="primary" onClick={onAction} size="medium">
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onAction}
+          size="medium"
+          sx={{ px: 3.5, borderRadius: 2.5 }}
+        >
           {actionLabel}
         </Button>
       )}
