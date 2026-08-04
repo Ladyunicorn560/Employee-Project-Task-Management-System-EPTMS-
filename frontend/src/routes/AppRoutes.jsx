@@ -59,6 +59,9 @@ const TaskEditPage = lazy(() => import('../pages/tasks/TaskEditPage'));
 // Notification Page
 const NotificationPage = lazy(() => import('../pages/notifications/NotificationPage'));
 
+// Reports Page
+const ReportsPage = lazy(() => import('../pages/reports/ReportsPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -320,15 +323,7 @@ const AppRoutes = () => {
           path={ROUTES.REPORTS}
           element={
             <ProtectedRoute allowedRoles={[...MANAGER_ROLES, 'Reviewer']}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Reports"
-                  description="Generate and export employee, project, and task reports. Coming in Phase 9."
-                  icon={AssessmentRoundedIcon}
-                  phase="Phase 9"
-                  module="Analytics"
-                />
-              </MainLayout>
+              <MainLayout><ReportsPage /></MainLayout>
             </ProtectedRoute>
           }
         />
