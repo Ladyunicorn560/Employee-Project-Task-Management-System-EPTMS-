@@ -7,6 +7,14 @@ const commentService = {
     const response = await axiosInstance.get(API.COMMENTS.BASE, { params });
     return response.data;
   },
+  getByTaskId: async (taskId, params) => {
+    const response = await axiosInstance.get(API.TASKS.COMMENTS(taskId), { params });
+    return response.data;
+  },
+  createInTask: async (taskId, payload) => {
+    const response = await axiosInstance.post(API.TASKS.COMMENTS(taskId), payload);
+    return response.data.data;
+  },
   getById: async (id) => {
     const response = await axiosInstance.get(API.COMMENTS.BY_ID(id));
     return response.data.data;

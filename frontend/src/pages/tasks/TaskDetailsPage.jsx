@@ -21,6 +21,9 @@ import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
 
 import TaskSubtasksTab from './components/TaskSubtasksTab';
+import TaskCommentsTab from './components/TaskCommentsTab';
+import TaskAttachmentsTab from './components/TaskAttachmentsTab';
+import TaskReviewsTab from './components/TaskReviewsTab';
 
 import useAuth from '../../hooks/useAuth';
 import taskService from '../../services/taskService';
@@ -249,11 +252,7 @@ const TaskDetailsPage = () => {
       {tabValue === 2 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <EmptyState
-              title="Comments & Feeds Placeholder"
-              description="Task comments, conversations, and discussion feeds will be added in Phase 11."
-              icon={ForumRoundedIcon}
-            />
+            <TaskCommentsTab task={task} />
           </CardContent>
         </Card>
       )}
@@ -261,11 +260,7 @@ const TaskDetailsPage = () => {
       {tabValue === 3 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <EmptyState
-              title="Attachments Node Placeholder"
-              description="Upload screenshots, document attachments, and files in Phase 11."
-              icon={AttachFileRoundedIcon}
-            />
+            <TaskAttachmentsTab task={task} />
           </CardContent>
         </Card>
       )}
@@ -273,11 +268,7 @@ const TaskDetailsPage = () => {
       {tabValue === 4 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <EmptyState
-              title="Reviews & Deliverables"
-              description="Task reviews and deliverables evaluations will be unlocked in Phase 12."
-              icon={RateReviewRoundedIcon}
-            />
+            <TaskReviewsTab task={task} />
           </CardContent>
         </Card>
       )}

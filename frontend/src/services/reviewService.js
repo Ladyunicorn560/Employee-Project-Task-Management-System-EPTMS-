@@ -7,12 +7,16 @@ const reviewService = {
     const response = await axiosInstance.get(API.REVIEWS.BASE, { params });
     return response.data;
   },
-  getById: async (id) => {
-    const response = await axiosInstance.get(API.REVIEWS.BY_ID(id));
+  getByTaskId: async (taskId, params) => {
+    const response = await axiosInstance.get(`/tasks/${taskId}/reviews`, { params });
+    return response.data;
+  },
+  createInTask: async (taskId, payload) => {
+    const response = await axiosInstance.post(`/tasks/${taskId}/reviews`, payload);
     return response.data.data;
   },
-  create: async (payload) => {
-    const response = await axiosInstance.post(API.REVIEWS.BASE, payload);
+  getById: async (id) => {
+    const response = await axiosInstance.get(API.REVIEWS.BY_ID(id));
     return response.data.data;
   },
   update: async (id, payload) => {

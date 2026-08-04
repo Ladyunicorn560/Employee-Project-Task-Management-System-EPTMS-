@@ -7,14 +7,16 @@ const attachmentService = {
     const response = await axiosInstance.get(API.ATTACHMENTS.BASE, { params });
     return response.data;
   },
-  getById: async (id) => {
-    const response = await axiosInstance.get(API.ATTACHMENTS.BY_ID(id));
+  getByTaskId: async (taskId, params) => {
+    const response = await axiosInstance.get(`/tasks/${taskId}/attachments`, { params });
+    return response.data;
+  },
+  uploadInTask: async (taskId, payload) => {
+    const response = await axiosInstance.post(`/tasks/${taskId}/attachments`, payload);
     return response.data.data;
   },
-  upload: async (payload) => {
-    const response = await axiosInstance.post(API.ATTACHMENTS.BASE, payload, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  getById: async (id) => {
+    const response = await axiosInstance.get(API.ATTACHMENTS.BY_ID(id));
     return response.data.data;
   },
   remove: async (id) => {
