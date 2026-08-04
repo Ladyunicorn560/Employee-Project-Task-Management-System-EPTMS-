@@ -7,6 +7,14 @@ const milestoneService = {
     const response = await axiosInstance.get(API.MILESTONES.BASE, { params });
     return response.data;
   },
+  getByProjectId: async (projectId, params) => {
+    const response = await axiosInstance.get(`${API.PROJECTS.BASE}/${projectId}/milestones`, { params });
+    return response.data;
+  },
+  createInProject: async (projectId, payload) => {
+    const response = await axiosInstance.post(`${API.PROJECTS.BASE}/${projectId}/milestones`, payload);
+    return response.data.data;
+  },
   getById: async (id) => {
     const response = await axiosInstance.get(API.MILESTONES.BY_ID(id));
     return response.data.data;

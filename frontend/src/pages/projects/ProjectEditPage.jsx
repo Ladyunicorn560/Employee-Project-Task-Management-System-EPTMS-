@@ -12,6 +12,7 @@ import FormActions from '../../components/forms/FormActions';
 import PageLoader from '../../components/ui/PageLoader';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
+import useAuth from '../../hooks/useAuth';
 import projectService from '../../services/projectService';
 import departmentService from '../../services/departmentService';
 import employeeService from '../../services/employeeService';

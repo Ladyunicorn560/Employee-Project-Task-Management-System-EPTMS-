@@ -20,6 +20,7 @@ import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
@@ -38,6 +39,7 @@ const ALL_NAV_ITEMS = {
     { id: 'roles', label: 'Roles', icon: AdminPanelSettingsRoundedIcon, path: ROUTES.ROLES },
     { id: 'div-work', divider: true, label: 'Work' },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
+    { id: 'milestones', label: 'Milestones', icon: FlagRoundedIcon, path: ROUTES.MILESTONES },
     { id: 'div-analytics', divider: true, label: 'Analytics' },
     { id: 'reports', label: 'Reports', icon: AssessmentRoundedIcon, path: ROUTES.REPORTS },
     { id: 'div-system', divider: true, label: 'System' },
@@ -50,6 +52,7 @@ const ALL_NAV_ITEMS = {
     { id: 'departments', label: 'Departments', icon: CorporateFareRoundedIcon, path: ROUTES.DEPARTMENTS },
     { id: 'div-work', divider: true, label: 'Work' },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
+    { id: 'milestones', label: 'Milestones', icon: FlagRoundedIcon, path: ROUTES.MILESTONES },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
     { id: 'div-analytics', divider: true, label: 'Analytics' },
     { id: 'reports', label: 'Reports', icon: AssessmentRoundedIcon, path: ROUTES.REPORTS },
@@ -58,6 +61,7 @@ const ALL_NAV_ITEMS = {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'div-work', divider: true, label: 'Work' },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
+    { id: 'milestones', label: 'Milestones', icon: FlagRoundedIcon, path: ROUTES.MILESTONES },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
     { id: 'div-account', divider: true, label: 'Account' },
     { id: 'profile', label: 'My Profile', icon: PersonRoundedIcon, path: ROUTES.PROFILE },
@@ -65,6 +69,8 @@ const ALL_NAV_ITEMS = {
   [ROLES.REVIEWER]: [
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'div-work', divider: true, label: 'Work' },
+    { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
+    { id: 'milestones', label: 'Milestones', icon: FlagRoundedIcon, path: ROUTES.MILESTONES },
     { id: 'reviews', label: 'Reviews', icon: RateReviewRoundedIcon, path: '/reviews' },
     { id: 'div-analytics', divider: true, label: 'Analytics' },
     { id: 'reports', label: 'Reports', icon: AssessmentRoundedIcon, path: ROUTES.REPORTS },

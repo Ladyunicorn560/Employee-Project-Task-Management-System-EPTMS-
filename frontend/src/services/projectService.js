@@ -25,15 +25,15 @@ const projectService = {
   },
   getMembers: async (id) => {
     const response = await axiosInstance.get(API.PROJECTS.MEMBERS(id));
+    return response.data; // Return complete API response to handle pagination/data format
+  },
+  addMember: async (projectId, payload) => {
+    const response = await axiosInstance.post(API.PROJECTS.MEMBERS(projectId), payload);
     return response.data.data;
   },
-  getMilestones: async (id) => {
-    const response = await axiosInstance.get(API.PROJECTS.MILESTONES(id));
-    return response.data.data;
-  },
-  getTasks: async (id) => {
-    const response = await axiosInstance.get(API.PROJECTS.TASKS(id));
-    return response.data.data;
+  removeMember: async (projectId, employeeId) => {
+    const response = await axiosInstance.delete(`${API.PROJECTS.MEMBERS(projectId)}/${employeeId}`);
+    return response.data;
   },
 };
 

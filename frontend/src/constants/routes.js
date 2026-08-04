@@ -19,6 +19,7 @@ export const ROUTES = {
 
   // Work Management
   PROJECTS: '/projects',
+  MILESTONES: '/milestones',
   TASKS: '/tasks',
 
   // Reporting

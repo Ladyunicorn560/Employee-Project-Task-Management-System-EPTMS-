@@ -44,6 +44,12 @@ const ProjectDetailsPage = lazy(() => import('../pages/projects/ProjectDetailsPa
 const ProjectCreatePage = lazy(() => import('../pages/projects/ProjectCreatePage'));
 const ProjectEditPage = lazy(() => import('../pages/projects/ProjectEditPage'));
 
+// Milestone Pages
+const MilestoneListPage = lazy(() => import('../pages/milestones/MilestoneListPage'));
+const MilestoneDetailsPage = lazy(() => import('../pages/milestones/MilestoneDetailsPage'));
+const MilestoneCreatePage = lazy(() => import('../pages/milestones/MilestoneCreatePage'));
+const MilestoneEditPage = lazy(() => import('../pages/milestones/MilestoneEditPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -228,6 +234,40 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={MANAGER_ROLES}>
               <MainLayout><ProjectEditPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Milestones Module */}
+        <Route
+          path={ROUTES.MILESTONES}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><MilestoneListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.MILESTONES}/create`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><MilestoneCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.MILESTONES}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><MilestoneDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.MILESTONES}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><MilestoneEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />

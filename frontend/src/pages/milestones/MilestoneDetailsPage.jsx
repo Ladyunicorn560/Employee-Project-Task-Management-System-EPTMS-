@@ -5,27 +5,24 @@ import {
 } from '@mui/material';
 import KeyboardArrowLeftRoundedIcon from '@mui/icons-material/KeyboardArrowLeftRounded';
 import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutlined';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
+import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+import RateReviewRoundedIcon from '@mui/icons-material/RateReviewRounded';
 
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import ProgressBar from '../../components/common/ProgressBar';
-import DateRangeDisplay from '../../components/common/DateRangeDisplay';
 import AppButton from '../../components/ui/AppButton';
 import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
 
 import useAuth from '../../hooks/useAuth';
+import milestoneService from '../../services/milestoneService';
 import projectService from '../../services/projectService';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
 import { formatDate } from '../../utils/dateUtils';
-
-import ProjectMembersTab from './components/ProjectMembersTab';
-import ProjectMilestonesTab from './components/ProjectMilestonesTab';
 
 const DetailInfoRow = ({ label, value }) => (
   <Box sx={{ display: 'flex', py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -39,15 +36,16 @@ const DetailInfoRow = ({ label, value }) => (
 );
 
 /**
- * ProjectDetailsPage
- * Renders complete project overview and prepares tab placeholders for Members, Milestones, and Tasks.
+ * MilestoneDetailsPage
+ * Renders overview details for a milestone, alongside tabs for tasks and reviews placeholders.
  */
-const ProjectDetailsPage = () => {
+const MilestoneDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tabValue, setTabValue] = useState(0);
 
+  const [milestone, setMilestone] = useState(null);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -59,10 +57,16 @@ const ProjectDetailsPage = () => {
     setLoading(true);
     setError(false);
     try {
-      const data = await projectService.getById(id);
-      setProject(data);
+      const msData = await milestoneService.getById(id);
+      setMilestone(msData);
+
+      // Load associated project to check PM ownership
+      if (msData?.projectId) {
+        const projData = await projectService.getById(msData.projectId);
+        setProject(projData);
+      }
     } catch (err) {
-      console.error('Failed to load project details:', err);
+      console.error('Failed to load milestone details:', err);
       setError(true);
     } finally {
       setLoading(false);
@@ -78,44 +82,40 @@ const ProjectDetailsPage = () => {
   };
 
   if (loading) {
-    return <PageLoader message="Loading project file..." />;
+    return <PageLoader message="Loading milestone profile..." />;
   }
 
-  if (error || !project) {
+  if (error || !milestone) {
     return (
       <Box>
-        <AppButton variant="outlined" startIcon={<KeyboardArrowLeftRoundedIcon />} onClick={() => navigate(ROUTES.PROJECTS)}>
+        <AppButton variant="outlined" startIcon={<KeyboardArrowLeftRoundedIcon />} onClick={() => navigate(ROUTES.MILESTONES)}>
           Back to List
         </AppButton>
         <Alert severity="error" sx={{ mt: 3, borderRadius: 2 }}>
-          Failed to fetch project details. The record does not exist or has been removed.
+          Failed to fetch milestone details. The record does not exist or has been removed.
         </Alert>
       </Box>
     );
   }
 
-  const projectManagerName = project.projectManager
-    ? `${project.projectManager.firstName} ${project.projectManager.lastName}`
-    : '—';
-
-  // PM Ownership Check: PM can only edit projects they manage
-  const canUserEdit = isAdmin || (isPM && project.projectManager?.id === user?.id);
+  // PM Ownership Check
+  const canUserEdit = isAdmin || (isPM && project?.projectManager?.id === user?.id);
 
   return (
     <Box>
       <PageHeader
-        title={project.projectName}
-        description={`Department: ${project.department?.name || '—'}`}
+        title={milestone.milestoneTitle}
+        description={`Associated Project: ${project?.projectName || '—'}`}
         breadcrumbItems={[
-          { label: 'Projects', to: ROUTES.PROJECTS },
-          { label: project.projectName },
+          { label: 'Milestones', to: ROUTES.MILESTONES },
+          { label: milestone.milestoneTitle },
         ]}
         action={
           <Box sx={{ display: 'flex', gap: 1.5 }}>
             <AppButton
               variant="outlined"
               startIcon={<KeyboardArrowLeftRoundedIcon />}
-              onClick={() => navigate(ROUTES.PROJECTS)}
+              onClick={() => navigate(ROUTES.MILESTONES)}
             >
               Back to List
             </AppButton>
@@ -123,9 +123,9 @@ const ProjectDetailsPage = () => {
               <AppButton
                 variant="primary"
                 startIcon={<ModeEditOutlineOutlinedIcon />}
-                onClick={() => navigate(`${ROUTES.PROJECTS}/${id}/edit`)}
+                onClick={() => navigate(`${ROUTES.MILESTONES}/${id}/edit`)}
               >
-                Edit Project
+                Edit Milestone
               </AppButton>
             )}
           </Box>
@@ -134,36 +134,33 @@ const ProjectDetailsPage = () => {
 
       {/* Tabs Menu */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="project detail sections">
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="milestone detail sections">
           <Tab label="Overview" />
-          <Tab label="Team Members" />
-          <Tab label="Milestones" />
-          <Tab label="Tasks" />
+          <Tab label="Tasks Pipeline" />
+          <Tab label="Reviews Summary" />
         </Tabs>
       </Box>
 
       {/* Tab Panels */}
       {tabValue === 0 && (
         <Grid container spacing={3}>
-          {/* Main Info */}
+          {/* Milestone Details */}
           <Grid item xs={12} md={7}>
             <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
               <CardContent sx={{ p: 3.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <FolderRoundedIcon color="primary" />
+                  <FlagRoundedIcon color="primary" />
                   <Typography variant="h6" fontWeight={700}>
-                    Project Overview
+                    Milestone Information
                   </Typography>
                 </Box>
                 <Divider />
                 <Box sx={{ mt: 2 }}>
-                  <DetailInfoRow label="Project Name" value={project.projectName} />
-                  <DetailInfoRow label="Description" value={project.description || 'No description provided.'} />
-                  <DetailInfoRow
-                    label="Timeline"
-                    value={<DateRangeDisplay startDate={project.startDate} endDate={project.endDate} />}
-                  />
-                  <DetailInfoRow label="Status" value={<StatusChip status={project.status} />} />
+                  <DetailInfoRow label="Title" value={milestone.milestoneTitle} />
+                  <DetailInfoRow label="Description" value={milestone.description || 'No description provided.'} />
+                  <DetailInfoRow label="Status" value={<StatusChip status={milestone.status} />} />
+                  <DetailInfoRow label="Due Date" value={formatDate(milestone.dueDate)} />
+                  <DetailInfoRow label="Completed Date" value={formatDate(milestone.completedDate)} />
                 </Box>
               </CardContent>
             </Card>
@@ -171,42 +168,35 @@ const ProjectDetailsPage = () => {
             <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
               <CardContent sx={{ p: 3.5 }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
-                  Project Track Progress
+                  Completion Progress
                 </Typography>
-                <ProgressBar value={project.progressPercentage} height={10} color="auto" />
+                <ProgressBar value={milestone.status === 'Completed' ? 100 : 0} height={10} color="auto" />
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Side Info */}
+          {/* Project Details */}
           <Grid item xs={12} md={5}>
-            {/* Project Manager details */}
-            <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+            <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
               <CardContent sx={{ p: 3.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <PeopleAltRoundedIcon color="primary" />
+                  <FolderRoundedIcon color="primary" />
                   <Typography variant="h6" fontWeight={700}>
-                    Project Manager
+                    Associated Project
                   </Typography>
                 </Box>
                 <Divider />
                 <Box sx={{ mt: 1 }}>
-                  <DetailInfoRow label="Manager Name" value={projectManagerName} />
-                  <DetailInfoRow label="Manager Email" value={project.projectManager?.email} />
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Audit details */}
-            <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-              <CardContent sx={{ p: 3.5 }}>
-                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                  System Audit Information
-                </Typography>
-                <Divider />
-                <Box sx={{ mt: 1 }}>
-                  <DetailInfoRow label="Created Date" value={formatDate(project.createdDate)} />
-                  <DetailInfoRow label="Last Updated" value={project.updatedDate ? formatDate(project.updatedDate) : 'Never updated'} />
+                  <DetailInfoRow label="Project Name" value={project?.projectName} />
+                  <DetailInfoRow
+                    label="Project Manager"
+                    value={
+                      project?.projectManager
+                        ? `${project.projectManager.firstName} ${project.projectManager.lastName}`
+                        : '—'
+                    }
+                  />
+                  <DetailInfoRow label="Department" value={project?.department?.name} />
                 </Box>
               </CardContent>
             </Card>
@@ -217,7 +207,11 @@ const ProjectDetailsPage = () => {
       {tabValue === 1 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <ProjectMembersTab project={project} />
+            <EmptyState
+              title="Tasks Pipeline Placeholder"
+              description="Milestone associated tasks list will be fully integrated in Phase 9 & Phase 10."
+              icon={TaskAltRoundedIcon}
+            />
           </CardContent>
         </Card>
       )}
@@ -225,18 +219,10 @@ const ProjectDetailsPage = () => {
       {tabValue === 2 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <ProjectMilestonesTab project={project} />
-          </CardContent>
-        </Card>
-      )}
-
-      {tabValue === 3 && (
-        <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          <CardContent sx={{ p: 4 }}>
             <EmptyState
-              title="Tasks Pipeline Placeholder"
-              description="Task workflows, checklists, and items tracking will be loaded in Phase 5 of Work modules."
-              icon={TaskAltRoundedIcon}
+              title="Reviews & Feedbacks Placeholder"
+              description="Evaluations, feedback loops, and task approvals are scheduled for future development phase sprints."
+              icon={RateReviewRoundedIcon}
             />
           </CardContent>
         </Card>
@@ -245,4 +231,4 @@ const ProjectDetailsPage = () => {
   );
 };
 
-export default ProjectDetailsPage;
+export default MilestoneDetailsPage;
