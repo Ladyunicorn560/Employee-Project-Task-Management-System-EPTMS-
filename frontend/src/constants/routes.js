@@ -24,6 +24,7 @@ export const ROUTES = {
 
   // Reporting
   REPORTS: '/reports',
+  NOTIFICATIONS: '/notifications',
 
   // User
   PROFILE: '/profile',

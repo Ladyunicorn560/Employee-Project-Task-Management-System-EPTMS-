@@ -11,7 +11,7 @@ import dashboardService from '../services/dashboardService';
  *   error       — boolean
  *   refetch     — () => void — manually re-trigger the fetch
  */
-const useDashboard = () => {
+const useDashboard = (filters = {}) => {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -20,7 +20,7 @@ const useDashboard = () => {
     setLoading(true);
     setError(false);
     try {
-      const data = await dashboardService.getOverview();
+      const data = await dashboardService.getOverview(filters);
       setOverview(data);
     } catch (err) {
       console.error('[useDashboard] Failed to fetch overview:', err);
@@ -28,7 +28,7 @@ const useDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     fetchOverview();

@@ -11,8 +11,8 @@ const dashboardService = {
    * Returns: { employees, projects, tasks, milestones }
    * @returns {Promise<object>}
    */
-  getOverview: async () => {
-    const response = await axiosInstance.get(API.DASHBOARD.OVERVIEW);
+  getOverview: async (params) => {
+    const response = await axiosInstance.get(API.DASHBOARD.OVERVIEW, { params });
     return response.data.data;
   },
 

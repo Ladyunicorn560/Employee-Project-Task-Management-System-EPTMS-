@@ -56,6 +56,9 @@ const TaskDetailsPage = lazy(() => import('../pages/tasks/TaskDetailsPage'));
 const TaskCreatePage = lazy(() => import('../pages/tasks/TaskCreatePage'));
 const TaskEditPage = lazy(() => import('../pages/tasks/TaskEditPage'));
 
+// Notification Page
+const NotificationPage = lazy(() => import('../pages/notifications/NotificationPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -326,6 +329,16 @@ const AppRoutes = () => {
                   module="Analytics"
                 />
               </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Notifications Module */}
+        <Route
+          path={ROUTES.NOTIFICATIONS}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><NotificationPage /></MainLayout>
             </ProtectedRoute>
           }
         />

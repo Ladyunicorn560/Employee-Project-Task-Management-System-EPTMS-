@@ -18,6 +18,9 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import { ROUTES } from '../../constants/routes';
 import { SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from './Sidebar';
 import { ROLES } from '../../constants/roles';
+import notificationService from '../../services/notificationService';
+import CircleIcon from '@mui/icons-material/Circle';
+import { formatDate } from '../../utils/dateUtils';
 
 /**
  * Navbar
@@ -36,11 +39,73 @@ const Navbar = ({ sidebarCollapsed, onMobileMenuOpen }) => {
   const [loggingOut, setLoggingOut] = useState(false);
   const menuOpen = Boolean(anchorEl);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+  const notifOpen = Boolean(notifAnchorEl);
+
+  const fetchUnreadAndPreview = async () => {
+    try {
+      const [unreadRes, previewRes] = await Promise.all([
+        notificationService.getAll({ limit: 1, isRead: false }),
+        notificationService.getAll({ limit: 5 }),
+      ]);
+      setUnreadCount(unreadRes.pagination?.total || 0);
+      setNotifications(previewRes.data || []);
+    } catch (err) {
+      console.error('Failed to load notifications preview:', err);
+    }
+  };
+
+  const handleNotifOpen = (e) => setNotifAnchorEl(e.currentTarget);
+  const handleNotifClose = () => setNotifAnchorEl(null);
+
+  const handleMarkAllNotifsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setUnreadCount(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error('Failed to mark all notifications read:', err);
+    }
+  };
+
+  const handleNotifItemClick = async (notif) => {
+    handleNotifClose();
+    if (!notif.isRead) {
+      try {
+        await notificationService.markAsRead(notif.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    if (notif.taskId) {
+      navigate(`${ROUTES.TASKS}/${notif.taskId}`);
+    } else if (notif.projectId) {
+      navigate(`${ROUTES.PROJECTS}/${notif.projectId}`);
+    } else {
+      navigate(ROUTES.NOTIFICATIONS);
+    }
+  };
+
   // Fetch fresh user profile on mount (restores after page refresh)
   useEffect(() => {
     if (user) {
       refreshUser?.();
+      fetchUnreadAndPreview();
     }
+    
+    window.addEventListener('unread-notifications-update', fetchUnreadAndPreview);
+    const interval = setInterval(fetchUnreadAndPreview, 30000);
+
+    return () => {
+      window.removeEventListener('unread-notifications-update', fetchUnreadAndPreview);
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -110,13 +175,89 @@ const Navbar = ({ sidebarCollapsed, onMobileMenuOpen }) => {
           <Box sx={{ flex: 1 }} />
 
           {/* Notification Bell */}
-          <Tooltip title="Notifications">
-            <IconButton sx={{ color: 'text.secondary', mr: 1 }}>
-              <Badge badgeContent={0} color="error" max={99}>
-                <NotificationsNoneRoundedIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          <IconButton onClick={handleNotifOpen} sx={{ color: 'text.secondary', mr: 1 }}>
+            <Badge badgeContent={unreadCount} color="error" max={99}>
+              <NotificationsNoneRoundedIcon />
+            </Badge>
+          </IconButton>
+
+          {/* Notifications Dropdown Preview Menu */}
+          <Menu
+            anchorEl={notifAnchorEl}
+            open={notifOpen}
+            onClose={handleNotifClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              elevation: 3,
+              sx: { mt: 1, minWidth: 320, maxWidth: 360, borderRadius: 2, border: '1px solid', borderColor: 'divider' },
+            }}
+          >
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="subtitle2" fontWeight={700}>Notifications</Typography>
+              {unreadCount > 0 && (
+                <Typography
+                  variant="caption"
+                  color="primary"
+                  sx={{ cursor: 'pointer', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+                  onClick={handleMarkAllNotifsRead}
+                >
+                  Mark all read
+                </Typography>
+              )}
+            </Box>
+            <Divider />
+
+            <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
+              {notifications.length === 0 ? (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">No notifications</Typography>
+                </Box>
+              ) : (
+                notifications.map((notif) => (
+                  <MenuItem
+                    key={notif.id}
+                    onClick={() => handleNotifItemClick(notif)}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      display: 'flex',
+                      gap: 1.5,
+                      borderBottom: '1px solid rgba(0,0,0,0.04)',
+                      whiteSpace: 'normal',
+                      alignItems: 'flex-start',
+                      backgroundColor: !notif.isRead ? 'rgba(25,118,210,0.01)' : 'transparent',
+                    }}
+                  >
+                    {!notif.isRead && (
+                      <CircleIcon sx={{ fontSize: 8, color: 'primary.main', mt: 0.75, flexShrink: 0 }} />
+                    )}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={!notif.isRead ? 700 : 400}
+                        color={!notif.isRead ? 'text.primary' : 'text.secondary'}
+                        sx={{ lineHeight: 1.4 }}
+                      >
+                        {notif.message}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.5 }}>
+                        {formatDate(notif.createdDate)}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))
+              )}
+            </Box>
+
+            <Divider />
+            <MenuItem
+              onClick={() => { handleNotifClose(); navigate(ROUTES.NOTIFICATIONS); }}
+              sx={{ py: 1.25, justifyContent: 'center', color: 'primary.main', fontWeight: 700, fontSize: '0.85rem' }}
+            >
+              View All Notifications
+            </MenuItem>
+          </Menu>
 
           {/* User Avatar + Dropdown */}
           <Box
