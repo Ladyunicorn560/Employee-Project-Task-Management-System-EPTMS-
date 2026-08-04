@@ -50,6 +50,12 @@ const MilestoneDetailsPage = lazy(() => import('../pages/milestones/MilestoneDet
 const MilestoneCreatePage = lazy(() => import('../pages/milestones/MilestoneCreatePage'));
 const MilestoneEditPage = lazy(() => import('../pages/milestones/MilestoneEditPage'));
 
+// Task Pages
+const TaskListPage = lazy(() => import('../pages/tasks/TaskListPage'));
+const TaskDetailsPage = lazy(() => import('../pages/tasks/TaskDetailsPage'));
+const TaskCreatePage = lazy(() => import('../pages/tasks/TaskCreatePage'));
+const TaskEditPage = lazy(() => import('../pages/tasks/TaskEditPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -272,20 +278,36 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Tasks — All authenticated */}
+        {/* Tasks Module */}
         <Route
           path={ROUTES.TASKS}
           element={
             <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Tasks"
-                  description="Track tasks, subtasks, comments, and attachments. Coming in Phase 5."
-                  icon={TaskAltRoundedIcon}
-                  phase="Phase 5"
-                  module="Work"
-                />
-              </MainLayout>
+              <MainLayout><TaskListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.TASKS}/create`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><TaskCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.TASKS}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><TaskDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.TASKS}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><TaskEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />

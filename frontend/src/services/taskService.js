@@ -7,6 +7,14 @@ const taskService = {
     const response = await axiosInstance.get(API.TASKS.BASE, { params });
     return response.data;
   },
+  getByMilestoneId: async (milestoneId, params) => {
+    const response = await axiosInstance.get(`/milestones/${milestoneId}/tasks`, { params });
+    return response.data;
+  },
+  createInMilestone: async (milestoneId, payload) => {
+    const response = await axiosInstance.post(`/milestones/${milestoneId}/tasks`, payload);
+    return response.data.data;
+  },
   getById: async (id) => {
     const response = await axiosInstance.get(API.TASKS.BY_ID(id));
     return response.data.data;
