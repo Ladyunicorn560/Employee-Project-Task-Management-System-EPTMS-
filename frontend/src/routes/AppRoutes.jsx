@@ -32,6 +32,18 @@ const DepartmentDetailsPage = lazy(() => import('../pages/departments/Department
 const DepartmentCreatePage = lazy(() => import('../pages/departments/DepartmentCreatePage'));
 const DepartmentEditPage = lazy(() => import('../pages/departments/DepartmentEditPage'));
 
+// Role Pages
+const RoleListPage = lazy(() => import('../pages/roles/RoleListPage'));
+const RoleDetailsPage = lazy(() => import('../pages/roles/RoleDetailsPage'));
+const RoleCreatePage = lazy(() => import('../pages/roles/RoleCreatePage'));
+const RoleEditPage = lazy(() => import('../pages/roles/RoleEditPage'));
+
+// Project Pages
+const ProjectListPage = lazy(() => import('../pages/projects/ProjectListPage'));
+const ProjectDetailsPage = lazy(() => import('../pages/projects/ProjectDetailsPage'));
+const ProjectCreatePage = lazy(() => import('../pages/projects/ProjectCreatePage'));
+const ProjectEditPage = lazy(() => import('../pages/projects/ProjectEditPage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -152,38 +164,70 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Roles — Admin only */}
+        {/* Roles Module */}
         <Route
           path={ROUTES.ROLES}
           element={
             <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Roles & Permissions"
-                  description="Manage system roles and access permissions. Coming in Phase 3."
-                  icon={AdminPanelSettingsRoundedIcon}
-                  phase="Phase 3"
-                  module="Organization"
-                />
-              </MainLayout>
+              <MainLayout><RoleListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.ROLES}/create`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><RoleCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.ROLES}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><RoleDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.ROLES}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+              <MainLayout><RoleEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />
 
-        {/* Projects — All authenticated */}
+        {/* Projects Module */}
         <Route
           path={ROUTES.PROJECTS}
           element={
             <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
-              <MainLayout>
-                <PlaceholderPage
-                  title="Projects"
-                  description="Create and manage projects with milestones, members, and timelines. Coming in Phase 4."
-                  icon={FolderRoundedIcon}
-                  phase="Phase 4"
-                  module="Work"
-                />
-              </MainLayout>
+              <MainLayout><ProjectListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.PROJECTS}/create`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><ProjectCreatePage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.PROJECTS}/:id`}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><ProjectDetailsPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={`${ROUTES.PROJECTS}/:id/edit`}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout><ProjectEditPage /></MainLayout>
             </ProtectedRoute>
           }
         />
