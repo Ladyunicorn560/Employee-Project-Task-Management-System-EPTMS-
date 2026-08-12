@@ -10,6 +10,8 @@ import DownloadForOfflineRoundedIcon from '@mui/icons-material/DownloadForOfflin
 
 import PageHeader from '../../components/common/PageHeader';
 import ExportDialog from './components/ExportDialog';
+import useAuth from '../../hooks/useAuth';
+import { ROLES } from '../../constants/roles';
 
 /**
  * ReportsPage
@@ -17,6 +19,8 @@ import ExportDialog from './components/ExportDialog';
  * and triggering customizable exports.
  */
 const ReportsPage = () => {
+  const { user } = useAuth();
+  const isEmployee = user?.roleName === ROLES.EMPLOYEE;
   const [exportOpen, setExportOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState({ type: '', title: '' });
 
@@ -25,44 +29,53 @@ const ReportsPage = () => {
     setExportOpen(true);
   };
 
-  const reportCards = [
+  // Employees see limited reports — only task-related data, not org-wide data
+  const allReportCards = [
     {
       type: 'projects',
       title: 'Projects Summary Report',
       description: 'Comprehensive analysis of project start/end dates, current status, average progress rates, and project manager designations.',
       icon: <FolderZipRoundedIcon sx={{ fontSize: 36, color: '#26A69A' }} />,
+      adminOnly: false,
     },
     {
       type: 'employees',
       title: 'Employees Workload Report',
       description: 'Summary of employee roles, department bounds, counts of open vs. completed tasks, and pending review requests.',
       icon: <PeopleAltRoundedIcon sx={{ fontSize: 36, color: '#1976D2' }} />,
+      adminOnly: true,
     },
     {
       type: 'tasks',
       title: 'Task Status Report',
       description: 'Complete breakdown of task priorities (High/Medium/Low), current status, assignees, and estimated vs. actual logged hours.',
       icon: <TaskAltRoundedIcon sx={{ fontSize: 36, color: '#2E7D32' }} />,
+      adminOnly: false,
     },
     {
       type: 'milestones',
       title: 'Milestones Progress Report',
       description: 'Progress tracker showing milestone titles, project alignment, and counts of completed milestones.',
       icon: <FlagRoundedIcon sx={{ fontSize: 36, color: '#7B1FA2' }} />,
+      adminOnly: false,
     },
     {
       type: 'reviews',
       title: 'Review Audit History',
       description: 'Full iteration details logs showing reviewer details, review outcome statuses (Approved, Rejected), and comments.',
       icon: <RateReviewRoundedIcon sx={{ fontSize: 36, color: '#F57C00' }} />,
+      adminOnly: false,
     },
     {
       type: 'notifications',
       title: 'Notifications Analytics',
       description: 'Channel metrics log displaying notification counts by type (Task Assigned, Review Request) and delivery status.',
       icon: <NotificationsActiveRoundedIcon sx={{ fontSize: 36, color: '#E53935' }} />,
+      adminOnly: true,
     },
   ];
+
+  const reportCards = isEmployee ? allReportCards.filter((r) => !r.adminOnly) : allReportCards;
 
   return (
     <Box>

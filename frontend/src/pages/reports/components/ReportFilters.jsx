@@ -25,9 +25,9 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
           projectService.getAll({ limit: 100 }),
           employeeService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
-        setProjects(projRes.data?.data || []);
-        setEmployees((empRes.data?.data || []).filter((e) => e.status === 'Active'));
+        setDepartments(deptRes.data || []);
+        setProjects(projRes.data || []);
+        setEmployees((empRes.data || []).filter((e) => e.status === 'Active'));
       } catch (err) {
         console.error('Failed to load filters select fields options:', err);
       }
@@ -49,38 +49,38 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
   return (
     <Box sx={{ mb: 1.5 }}>
       <Grid container spacing={2}>
-        {/* Date Ranges (Relevant for projects, tasks, milestones, reviews) */}
-        {!isEmployees && !isNotifications && (
-          <>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label="Start Date"
-                size="small"
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={filters.startDate || ''}
-                onChange={handleChange('startDate')}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label="End Date"
-                size="small"
-                slotProps={{ inputLabel: { shrink: true } }}
-                value={filters.endDate || ''}
-                onChange={handleChange('endDate')}
-              />
-            </Grid>
-          </>
+        {/* Date Ranges (Relevant for projects, tasks, milestones, reviews, notifications) */}
+        {!isEmployees && (
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Start Date"
+              size="small"
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={filters.startDate || ''}
+              onChange={handleChange('startDate')}
+            />
+          </Grid>
+        )}
+        {!isEmployees && (
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="End Date"
+              size="small"
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={filters.endDate || ''}
+              onChange={handleChange('endDate')}
+            />
+          </Grid>
         )}
 
         {/* Project Select (Relevant for tasks, milestones, reviews) */}
         {(isTasks || isMilestones || isReviews) && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-proj-label">Select Project</InputLabel>
               <Select
                 labelId="report-filter-proj-label"
@@ -102,7 +102,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
         {/* Department Select (Relevant for projects, employees) */}
         {(isProjects || isEmployees) && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-dept-label">Filter Department</InputLabel>
               <Select
                 labelId="report-filter-dept-label"
@@ -113,7 +113,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
                 <MenuItem value="">All Departments</MenuItem>
                 {departments.map((d) => (
                   <MenuItem key={d.id} value={d.id}>
-                    {d.name}
+                    {d.departmentName}
                   </MenuItem>
                 ))}
               </Select>
@@ -124,7 +124,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
         {/* Status Select (Relevant for projects, tasks, milestones, reviews) */}
         {(isProjects || isTasks || isMilestones || isReviews) && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-status-label">Status</InputLabel>
               <Select
                 labelId="report-filter-status-label"
@@ -172,7 +172,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
         {/* Assignee / Employee Select (Relevant for tasks) */}
         {isTasks && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-emp-label">Assignee</InputLabel>
               <Select
                 labelId="report-filter-emp-label"
@@ -194,7 +194,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
         {/* Priority Select (Relevant for tasks) */}
         {isTasks && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-priority-label">Priority</InputLabel>
               <Select
                 labelId="report-filter-priority-label"
@@ -214,7 +214,7 @@ const ReportFilters = ({ reportType, filters, onFilterChange }) => {
         {/* Reviewer Select (Relevant for reviews) */}
         {isReviews && (
           <Grid item xs={12} sm={6}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="report-filter-rev-label">Reviewer</InputLabel>
               <Select
                 labelId="report-filter-rev-label"

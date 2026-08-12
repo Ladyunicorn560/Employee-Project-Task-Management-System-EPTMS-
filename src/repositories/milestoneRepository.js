@@ -193,6 +193,21 @@ class MilestoneRepository extends BaseRepository {
   }
 
   /**
+   * Gets incomplete active task count assigned under a milestone
+   */
+  async getIncompleteTaskCount(milestoneId) {
+    const queryStr = `
+      SELECT COUNT(*) AS TaskCount
+      FROM [dbo].[Task]
+      WHERE [MilestoneID] = @MilestoneID AND [Status] <> N'Completed' AND [Status] <> N'Cancelled' AND [IsDeleted] = 0;
+    `;
+
+    const params = { MilestoneID: { type: mssql.Int, value: milestoneId } };
+    const result = await this.query(queryStr, params);
+    return result.recordset && result.recordset.length > 0 ? result.recordset[0].TaskCount : 0;
+  }
+
+  /**
    * Inserts new milestone record within optional transaction
    */
   async create({ projectId, milestoneTitle, description, dueDate, completedDate, status, createdBy }, transaction = null) {

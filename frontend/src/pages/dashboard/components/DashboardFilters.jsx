@@ -22,8 +22,8 @@ const DashboardFilters = ({ filters, onFilterChange }) => {
           departmentService.getAll(),
           projectService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
-        setProjects(projRes.data?.data || []);
+        setDepartments(deptRes.data || []);
+        setProjects(projRes.data || []);
       } catch (err) {
         console.error('Failed to load dashboard filter lists:', err);
       }
@@ -52,7 +52,7 @@ const DashboardFilters = ({ filters, onFilterChange }) => {
       <Grid container spacing={2} alignItems="center">
         {/* Department Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl size="small" fullWidth>
+          <FormControl size="small" fullWidth sx={{ minWidth: 175 }}>
             <InputLabel id="dash-dept-filter-label">Filter Department</InputLabel>
             <Select
               labelId="dash-dept-filter-label"
@@ -63,7 +63,7 @@ const DashboardFilters = ({ filters, onFilterChange }) => {
               <MenuItem value="">All Departments</MenuItem>
               {departments.map((d) => (
                 <MenuItem key={d.id} value={d.id}>
-                  {d.name}
+                  {d.departmentName}
                 </MenuItem>
               ))}
             </Select>
@@ -72,7 +72,7 @@ const DashboardFilters = ({ filters, onFilterChange }) => {
 
         {/* Project Filter */}
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl size="small" fullWidth>
+          <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
             <InputLabel id="dash-proj-filter-label">Filter Project</InputLabel>
             <Select
               labelId="dash-proj-filter-label"

@@ -63,8 +63,8 @@ const ProjectEditPage = () => {
         departmentService.getAll({ limit: 100 }),
         employeeService.getAll({ limit: 100 }),
       ]);
-      setDepartments(deptRes.data?.data || []);
-      const filtered = (pmRes.data?.data || []).filter(
+      setDepartments(deptRes.data || []);
+      const filtered = (pmRes.data || []).filter(
         (emp) =>
           emp.role?.name === ROLES.PROJECT_MANAGER ||
           emp.role?.name === ROLES.ADMINISTRATOR
@@ -239,7 +239,7 @@ const ProjectEditPage = () => {
         {/* Ownership assignment */}
         <FormSection title="Work Alignment" subtitle="Select department and lead project manager">
           <Grid container spacing={2.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl size="medium" fullWidth error={!!errors.departmentId} disabled={loadingOptions}>
                 <InputLabel id="proj-edit-dept-label">Department</InputLabel>
                 <Select
@@ -257,7 +257,7 @@ const ProjectEditPage = () => {
                 {errors.departmentId && <FormHelperText>{errors.departmentId.message}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl size="medium" fullWidth error={!!errors.projectManagerId} disabled={loadingOptions}>
                 <InputLabel id="proj-edit-pm-label">Project Manager</InputLabel>
                 <Select

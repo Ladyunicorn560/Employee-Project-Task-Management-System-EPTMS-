@@ -52,8 +52,8 @@ const EmployeeCreatePage = () => {
           departmentService.getAll({ limit: 100 }),
           roleService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
-        setRoles(roleRes.data?.data || []);
+        setDepartments(deptRes.data || []);
+        setRoles(roleRes.data || []);
       } catch (err) {
         console.error('Failed to load form options:', err);
         toast.error('Failed to load departments or roles options.');

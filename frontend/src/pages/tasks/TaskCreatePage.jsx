@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
-  Box, Grid, TextField, MenuItem, Select, FormControl, InputLabel, FormHelperText, Alert,
+  Box, Grid, TextField, MenuItem, Select, FormControl, InputLabel, FormHelperText,
 } from '@mui/material';
 import { toast } from 'react-toastify';
 
@@ -13,8 +13,8 @@ import PageLoader from '../../components/ui/PageLoader';
 
 import projectService from '../../services/projectService';
 import milestoneService from '../../services/milestoneService';
-import employeeService from '../../services/employeeService';
 import taskService from '../../services/taskService';
+import memberService from '../../services/memberService';
 import { ROUTES } from '../../constants/routes';
 
 /**
@@ -29,7 +29,7 @@ const TaskCreatePage = () => {
   // Dropdown lists
   const [projects, setProjects] = useState([]);
   const [milestones, setMilestones] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [projectAssignees, setProjectAssignees] = useState([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMilestones, setLoadingMilestones] = useState(false);
 
@@ -40,32 +40,28 @@ const TaskCreatePage = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
-    mode: 'onBlur',
     defaultValues: {
       title: '',
       description: '',
       assignedTo: '',
+      reviewerId: '',
       priority: 'Low',
-      status: 'Pending',
+      status: 'Not Started',
       dueDate: '',
       estimatedHours: 0,
     },
   });
 
-  // 1. Initial Load: Projects, Employees, and preloaded milestone details
+  // 1. Initial Load: Projects and preloaded milestone details
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoadingInitial(true);
       try {
-        const [projRes, empRes] = await Promise.all([
-          projectService.getAll({ limit: 100 }),
-          employeeService.getAll({ limit: 100 }),
-        ]);
-
-        setProjects(projRes.data?.data || []);
-        setEmployees((empRes.data?.data || []).filter((e) => e.status === 'Active'));
+        const projRes = await projectService.getAll({ limit: 100 });
+        setProjects(projRes.data || []);
 
         // If a milestoneId is provided, pre-select project and milestone
         if (initialMilestoneId) {
@@ -74,13 +70,13 @@ const TaskCreatePage = () => {
             setSelectedProj(msData.projectId);
             // Fetch milestones for that project to populate list
             const msRes = await milestoneService.getByProjectId(msData.projectId, { limit: 100 });
-            setMilestones(msRes.data?.data || []);
+            setMilestones(msRes.data || []);
             setSelectedMS(initialMilestoneId);
           }
         }
       } catch (err) {
         console.error('Failed to load initial task create fields:', err);
-        toast.error('Failed to load employee list options.');
+        toast.error('Failed to load project details.');
       } finally {
         setLoadingInitial(false);
       }
@@ -88,7 +84,54 @@ const TaskCreatePage = () => {
     fetchInitialData();
   }, [initialMilestoneId]);
 
-  // 2. Cascade load milestones if project selection changes manually
+  // 2. Load members who belong to the selected project as valid assignees
+  useEffect(() => {
+    if (!selectedProj || projects.length === 0) {
+      setProjectAssignees([]);
+      setValue('assignedTo', '');
+      setValue('reviewerId', '');
+      return;
+    }
+    const fetchProjectAssignees = async () => {
+      try {
+        const projObj = projects.find((p) => p.id === selectedProj);
+        const membersData = await memberService.getProjectMembers(selectedProj);
+        const list = [];
+
+        // 1. Add Project Manager as a valid assignee
+        if (projObj?.projectManager) {
+          list.push({
+            id: projObj.projectManager.id,
+            firstName: projObj.projectManager.firstName,
+            lastName: projObj.projectManager.lastName,
+            department: projObj.department,
+            roleInProject: 'Project Manager',
+          });
+        }
+
+        // 2. Add Project Members
+        if (membersData) {
+          membersData.forEach((m) => {
+            if (m.employee && m.employee.status === 'Active' && !list.some((x) => x.id === m.employee.id)) {
+              list.push({
+                id: m.employee.id,
+                firstName: m.employee.firstName,
+                lastName: m.employee.lastName,
+                department: m.employee.department,
+                roleInProject: m.roleInProject || 'Member',
+              });
+            }
+          });
+        }
+        setProjectAssignees(list);
+      } catch (err) {
+        console.error('Failed to fetch valid project assignees:', err);
+      }
+    };
+    fetchProjectAssignees();
+  }, [selectedProj, projects, setValue]);
+
+  // 3. Cascade load milestones if project selection changes manually
   const handleProjectChange = async (e) => {
     const projId = e.target.value;
     setSelectedProj(projId);
@@ -97,7 +140,7 @@ const TaskCreatePage = () => {
     setLoadingMilestones(true);
     try {
       const res = await milestoneService.getByProjectId(projId, { limit: 100 });
-      setMilestones(res.data?.data || []);
+      setMilestones(res.data || []);
     } catch (err) {
       console.error('Failed to load milestones for project:', err);
     } finally {
@@ -112,9 +155,10 @@ const TaskCreatePage = () => {
     }
     try {
       const payload = {
-        title: data.title.trim(),
+        taskTitle: data.title.trim(),
         description: data.description.trim() || null,
-        assignedTo: data.assignedTo ? parseInt(data.assignedTo, 10) : null,
+        assignedEmployeeId: data.assignedTo ? parseInt(data.assignedTo, 10) : null,
+        reviewerId: data.reviewerId ? parseInt(data.reviewerId, 10) : null,
         priority: data.priority,
         status: data.status,
         dueDate: data.dueDate,
@@ -131,14 +175,14 @@ const TaskCreatePage = () => {
   };
 
   if (loadingInitial) {
-    return <PageLoader message="Initializing task create form..." />;
+    return <PageLoader />;
   }
 
   return (
     <Box sx={{ maxWidth: 800 }}>
       <PageHeader
-        title="Add Milestone Task"
-        description="Launch a new action item under project milestone timeline nodes."
+        title="Create Milestone Task"
+        description="Configure target work assignments, assignees, deadlines, and estimations."
         breadcrumbItems={[
           { label: 'Tasks', to: ROUTES.TASKS },
           { label: 'Create' },
@@ -149,7 +193,7 @@ const TaskCreatePage = () => {
         {/* Cascade project selectors */}
         <FormSection title="Organizational Bounds" subtitle="Assign target project and milestone">
           <Grid container spacing={2.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth disabled={!!initialMilestoneId}>
                 <InputLabel id="task-create-proj-select">Select Project</InputLabel>
                 <Select
@@ -166,7 +210,7 @@ const TaskCreatePage = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth disabled={!!initialMilestoneId || loadingMilestones || !selectedProj}>
                 <InputLabel id="task-create-ms-select">Select Milestone</InputLabel>
                 <Select
@@ -231,25 +275,47 @@ const TaskCreatePage = () => {
         {/* Work settings and assignee */}
         <FormSection title="Resource Assignment" subtitle="Allocate assignee and project schedule estimations">
           <Grid container spacing={2.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.assignedTo}>
                 <InputLabel id="task-create-assignee">Assigned Employee</InputLabel>
                 <Select
                   labelId="task-create-assignee"
                   label="Assigned Employee"
                   defaultValue=""
-                  {...register('assignedTo')}
+                  {...register('assignedTo', { required: 'Assigned employee is required' })}
+                  disabled={!selectedProj}
                 >
-                  <MenuItem value="">Unassigned</MenuItem>
-                  {employees.map((emp) => (
+                  <MenuItem value="">Select Employee</MenuItem>
+                  {projectAssignees.map((emp) => (
                     <MenuItem key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} ({emp.department?.name})
+                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.assignedTo && <FormHelperText>{errors.assignedTo.message}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.reviewerId}>
+                <InputLabel id="task-create-reviewer">Assigned Reviewer</InputLabel>
+                <Select
+                  labelId="task-create-reviewer"
+                  label="Assigned Reviewer"
+                  defaultValue=""
+                  {...register('reviewerId', { required: 'Assigned reviewer is required' })}
+                  disabled={!selectedProj}
+                >
+                  <MenuItem value="">Select Reviewer</MenuItem>
+                  {projectAssignees.map((emp) => (
+                    <MenuItem key={emp.id} value={emp.id}>
+                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.reviewerId && <FormHelperText>{errors.reviewerId.message}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <TextField
                 id="task-create-due-date"
                 fullWidth

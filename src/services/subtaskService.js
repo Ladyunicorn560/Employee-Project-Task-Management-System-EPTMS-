@@ -25,6 +25,12 @@ class SubtaskService {
       throw new ForbiddenError('Access denied. You can only create subtasks for projects you manage.');
     }
 
+    // 2b. Employee Ownership Guard — Employees can only create subtasks on tasks assigned to them
+    if (currentUser.roleName === ROLES.EMPLOYEE && hierarchy.TaskAssignedTo !== currentUser.userId) {
+      logger.warn(`Unauthorized subtask creation attempt: Employee ${currentUser.email} tried to add subtask to Task ID ${taskId} not assigned to them`);
+      throw new ForbiddenError('Access denied. You can only create subtasks for tasks assigned to you.');
+    }
+
     // 3. If AssignedEmployeeID is specified, validate existence, active status, and project membership
     if (data.assignedEmployeeId) {
       const assignee = await projectMemberRepository.getEmployeeDetails(data.assignedEmployeeId);

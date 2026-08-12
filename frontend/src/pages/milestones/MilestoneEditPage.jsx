@@ -114,7 +114,7 @@ const MilestoneEditPage = () => {
       reset(data); // clear dirty state
       navigate(`${ROUTES.MILESTONES}/${id}`);
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Failed to update milestone.';
+      const msg = err?.response?.data?.errors?.[0]?.message || err?.response?.data?.message || 'Failed to update milestone.';
       toast.error(msg);
     }
   };
@@ -168,10 +168,12 @@ const MilestoneEditPage = () => {
                   defaultValue="Planning"
                   {...register('status', { required: 'Status is required' })}
                 >
+                  <MenuItem value="Not Started">Not Started</MenuItem>
                   <MenuItem value="Planning">Planning</MenuItem>
                   <MenuItem value="In Progress">In Progress</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
                   <MenuItem value="On Hold">On Hold</MenuItem>
+                  <MenuItem value="Completed">Completed</MenuItem>
+                  <MenuItem value="Cancelled">Cancelled</MenuItem>
                 </Select>
                 {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
               </FormControl>

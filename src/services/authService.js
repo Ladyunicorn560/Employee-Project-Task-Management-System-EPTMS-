@@ -3,8 +3,11 @@ const { comparePassword, hashPassword } = require('../utils/crypto');
 const { generateToken } = require('../utils/jwt');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 const ForbiddenError = require('../errors/ForbiddenError');
+const NotFoundError = require('../errors/NotFoundError');
+const BadRequestError = require('../errors/BadRequestError');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
+const emailService = require('./emailService');
 
 class AuthService {
   /**
@@ -161,6 +164,51 @@ class AuthService {
     // 4. Persist the updated hash
     await authRepository.updatePassword(userId, newPasswordHash);
     logger.info(`Password updated successfully for EmployeeID: ${userId}`);
+  }
+
+  /**
+   * Generates a password reset token and saves it in the database
+   * @param {string} email
+   */
+  async forgotPassword(email) {
+    const crypto = require('crypto');
+    const user = await authRepository.findUserByEmail(email);
+    if (!user || user.IsDeleted) {
+      throw new NotFoundError(`User with email '${email}' was not found`);
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour
+
+    await authRepository.saveResetToken(user.EmployeeID, token, expires);
+
+    await emailService.sendPasswordResetEmail(user.Email, `${user.FirstName} ${user.LastName}`, token);
+
+    logger.info(`Password reset token generated for user ${email}: ${token}`);
+
+    return { token };
+  }
+
+  /**
+   * Validates the reset token and updates the employee password
+   * @param {string} token
+   * @param {string} newPassword
+   */
+  async resetPassword(token, newPassword) {
+    const user = await authRepository.findUserByResetToken(token);
+    if (!user) {
+      throw new BadRequestError('Invalid or expired password reset token');
+    }
+
+    if (new Date(user.ResetPasswordExpires) < new Date()) {
+      throw new BadRequestError('Password reset token has expired');
+    }
+
+    const newPasswordHash = await hashPassword(newPassword);
+    await authRepository.updatePassword(user.EmployeeID, newPasswordHash);
+    await authRepository.clearResetToken(user.EmployeeID);
+
+    logger.info(`Password reset completed successfully for user ${user.Email}`);
   }
 }
 

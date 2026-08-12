@@ -69,8 +69,8 @@ const DepartmentListPage = () => {
         search: search || undefined,
       });
 
-      setDepartments(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setDepartments(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Error loading departments:', err);
       setError(true);

@@ -56,8 +56,8 @@ const ProjectMilestonesTab = ({ project }) => {
         page: page + 1,
         limit: pageSize,
       });
-      setMilestones(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setMilestones(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Failed to load project milestones:', err);
       setError(true);

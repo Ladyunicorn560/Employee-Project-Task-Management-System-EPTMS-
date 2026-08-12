@@ -66,9 +66,9 @@ const ProjectListPage = () => {
           departmentService.getAll({ limit: 100 }),
           employeeService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
+        setDepartments(deptRes.data || []);
         // Filter to display only PMs or Admins in the manager selection list
-        const filteredPms = (pmRes.data?.data || []).filter(
+        const filteredPms = (pmRes.data || []).filter(
           (emp) =>
             emp.role?.name === ROLES.PROJECT_MANAGER ||
             emp.role?.name === ROLES.ADMINISTRATOR
@@ -99,8 +99,8 @@ const ProjectListPage = () => {
         assignedEmployeeId, // Send to API to filter projects
       });
 
-      setProjects(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setProjects(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Error loading projects list:', err);
       setError(true);
@@ -179,9 +179,16 @@ const ProjectListPage = () => {
         id: 'timeline',
         label: 'Timeline',
         minWidth: 220,
-        render: (_, row) => (
-          <DateRangeDisplay startDate={row.startDate} endDate={row.endDate} />
-        ),
+        render: (_, row) => {
+          const isOverdueProject = row.status !== 'Completed' && row.endDate && new Date(row.endDate) < new Date();
+          return (
+            <DateRangeDisplay 
+              startDate={row.startDate} 
+              endDate={row.endDate} 
+              isOverdue={isOverdueProject} 
+            />
+          );
+        },
       },
       {
         id: 'status',
@@ -254,8 +261,8 @@ const ProjectListPage = () => {
 
       {/* Filter Row */}
       <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4} md={3}>
+        <Grid container spacing={2} alignItems="center" wrap="wrap">
+          <Grid item xs={12} sm={6} md={3}>
             <SearchBar
               value={search}
               onChange={handleSearchChange}
@@ -263,8 +270,8 @@ const ProjectListPage = () => {
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} sm={3} md={2.5}>
-            <FormControl size="small" fullWidth>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth sx={{ minWidth: 160 }}>
               <InputLabel id="proj-dept-filter-label">Department</InputLabel>
               <Select
                 labelId="proj-dept-filter-label"
@@ -281,8 +288,8 @@ const ProjectListPage = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={3} md={2.5}>
-            <FormControl size="small" fullWidth>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth sx={{ minWidth: 175 }}>
               <InputLabel id="proj-pm-filter-label">Project Manager</InputLabel>
               <Select
                 labelId="proj-pm-filter-label"
@@ -299,8 +306,8 @@ const ProjectListPage = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={2} md={2}>
-            <FormControl size="small" fullWidth>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl size="small" fullWidth sx={{ minWidth: 130 }}>
               <InputLabel id="proj-status-filter-label">Status</InputLabel>
               <Select
                 labelId="proj-status-filter-label"
@@ -317,9 +324,9 @@ const ProjectListPage = () => {
             </FormControl>
           </Grid>
           {(search || statusFilter || deptFilter || pmFilter) && (
-            <Grid item xs={12} sm={12} md={2}>
+            <Grid item xs={12} sm={12} md={1}>
               <AppButton variant="outlined" size="small" fullWidth onClick={handleClearFilters}>
-                Clear Filters
+                Clear
               </AppButton>
             </Grid>
           )}

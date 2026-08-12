@@ -35,11 +35,13 @@ const createTaskSchema = z.object({
       .optional()
       .nullable(),
     assignedEmployeeId: z
-      .number()
+      .number({ required_error: 'Assigned employee ID is required' })
       .int('Assigned employee ID must be an integer')
-      .positive('Assigned employee ID must be a positive integer')
-      .optional()
-      .nullable(),
+      .positive('Assigned employee ID must be a positive integer'),
+    reviewerId: z
+      .number({ required_error: 'Reviewer employee ID is required' })
+      .int('Reviewer employee ID must be an integer')
+      .positive('Reviewer employee ID must be a positive integer'),
     priority: z
       .enum(VALID_TASK_PRIORITIES, {
         errorMap: () => ({ message: `Priority must be one of: ${VALID_TASK_PRIORITIES.join(', ')}` })
@@ -97,8 +99,12 @@ const updateTaskSchema = z.object({
       .number()
       .int('Assigned employee ID must be an integer')
       .positive('Assigned employee ID must be a positive integer')
-      .optional()
-      .nullable(),
+      .optional(),
+    reviewerId: z
+      .number()
+      .int('Reviewer employee ID must be an integer')
+      .positive('Reviewer employee ID must be a positive integer')
+      .optional(),
     priority: z
       .enum(VALID_TASK_PRIORITIES, {
         errorMap: () => ({ message: `Priority must be one of: ${VALID_TASK_PRIORITIES.join(', ')}` })
@@ -161,6 +167,49 @@ const getTasksQuerySchema = z.object({
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    reviewerId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    sortBy: z.enum(['TaskID', 'TaskTitle', 'DueDate', 'Priority', 'Status']).optional().default('DueDate'),
+    sortOrder: z.enum(['ASC', 'DESC']).optional().default('ASC'),
+    page: z
+      .string()
+      .optional()
+      .default('1')
+      .transform((val) => parseInt(val, 10)),
+    limit: z
+      .string()
+      .optional()
+      .default('10')
+      .transform((val) => parseInt(val, 10))
+  })
+});
+
+/**
+ * Zod Schema for GET /api/v1/tasks query parameters
+ */
+const getAllTasksQuerySchema = z.object({
+  query: z.object({
+    projectId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    milestoneId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    search: z.string().optional(),
+    status: z.enum(VALID_TASK_STATUSES).optional(),
+    priority: z.enum(VALID_TASK_PRIORITIES).optional(),
+    assignedEmployeeId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    reviewerId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
     sortBy: z.enum(['TaskID', 'TaskTitle', 'DueDate', 'Priority', 'Status']).optional().default('DueDate'),
     sortOrder: z.enum(['ASC', 'DESC']).optional().default('ASC'),
     page: z
@@ -181,6 +230,7 @@ module.exports = {
   updateTaskSchema,
   taskIdParamSchema,
   getTasksQuerySchema,
+  getAllTasksQuerySchema,
   VALID_TASK_STATUSES,
   VALID_TASK_PRIORITIES
 };

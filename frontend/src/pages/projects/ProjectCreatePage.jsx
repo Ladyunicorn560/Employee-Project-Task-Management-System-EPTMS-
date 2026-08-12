@@ -56,9 +56,9 @@ const ProjectCreatePage = () => {
           departmentService.getAll({ limit: 100 }),
           employeeService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
+        setDepartments(deptRes.data || []);
         // Only select PMs or Admins
-        const filtered = (pmRes.data?.data || []).filter(
+        const filtered = (pmRes.data || []).filter(
           (emp) =>
             emp.role?.name === ROLES.PROJECT_MANAGER ||
             emp.role?.name === ROLES.ADMINISTRATOR
@@ -154,7 +154,7 @@ const ProjectCreatePage = () => {
         {/* Ownership assignment */}
         <FormSection title="Work Alignment" subtitle="Select organizational node and lead project manager">
           <Grid container spacing={2.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl size="medium" fullWidth error={!!errors.departmentId} disabled={loadingOptions}>
                 <InputLabel id="proj-create-dept-label">Department</InputLabel>
                 <Select
@@ -173,7 +173,7 @@ const ProjectCreatePage = () => {
                 {errors.departmentId && <FormHelperText>{errors.departmentId.message}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl size="medium" fullWidth error={!!errors.projectManagerId} disabled={loadingOptions}>
                 <InputLabel id="proj-create-pm-label">Project Manager</InputLabel>
                 <Select

@@ -1,6 +1,6 @@
 const { z } = require('zod');
 
-const VALID_MILESTONE_STATUSES = ['Not Started', 'In Progress', 'Completed'];
+const VALID_MILESTONE_STATUSES = ['Not Started', 'Planning', 'In Progress', 'On Hold', 'Completed', 'Cancelled'];
 
 /**
  * Zod Schema for POST /api/v1/projects/:projectId/milestones (Create Milestone)

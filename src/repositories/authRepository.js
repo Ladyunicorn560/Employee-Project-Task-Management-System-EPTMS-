@@ -163,6 +163,70 @@ class AuthRepository extends BaseRepository {
 
     await this.query(queryStr, params);
   }
+
+  /**
+   * Saves reset password token and expiration date for employee
+   */
+  async saveResetToken(employeeId, token, expires) {
+    const queryStr = `
+      UPDATE [dbo].[Employee]
+      SET 
+        [ResetPasswordToken] = @ResetPasswordToken,
+        [ResetPasswordExpires] = @ResetPasswordExpires,
+        [UpdatedDate] = SYSUTCDATETIME()
+      WHERE [EmployeeID] = @EmployeeID;
+    `;
+
+    const params = {
+      EmployeeID: { type: mssql.Int, value: employeeId },
+      ResetPasswordToken: { type: mssql.NVarChar(255), value: token },
+      ResetPasswordExpires: { type: mssql.DateTime2, value: expires }
+    };
+
+    await this.query(queryStr, params);
+  }
+
+  /**
+   * Finds employee by reset token
+   */
+  async findUserByResetToken(token) {
+    const queryStr = `
+      SELECT 
+        e.[EmployeeID],
+        e.[Email],
+        e.[ResetPasswordExpires]
+      FROM [dbo].[Employee] e
+      WHERE e.[ResetPasswordToken] = @ResetPasswordToken 
+      AND e.[IsDeleted] = 0;
+    `;
+
+    const params = {
+      ResetPasswordToken: { type: mssql.NVarChar(255), value: token }
+    };
+
+    const result = await this.query(queryStr, params);
+    return result.recordset && result.recordset.length > 0 ? result.recordset[0] : null;
+  }
+
+  /**
+   * Clears reset password token and expiration date for employee
+   */
+  async clearResetToken(employeeId) {
+    const queryStr = `
+      UPDATE [dbo].[Employee]
+      SET 
+        [ResetPasswordToken] = NULL,
+        [ResetPasswordExpires] = NULL,
+        [UpdatedDate] = SYSUTCDATETIME()
+      WHERE [EmployeeID] = @EmployeeID;
+    `;
+
+    const params = {
+      EmployeeID: { type: mssql.Int, value: employeeId }
+    };
+
+    await this.query(queryStr, params);
+  }
 }
 
 module.exports = new AuthRepository();

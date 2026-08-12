@@ -3,6 +3,7 @@ const taskRepository = require('../repositories/taskRepository');
 const projectRepository = require('../repositories/projectRepository');
 const projectMemberRepository = require('../repositories/projectMemberRepository');
 const notificationService = require('./notificationService');
+const emailService = require('./emailService');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
@@ -28,6 +29,14 @@ class ReviewService {
       }
       if (data.status && data.status !== 'Pending') {
         throw new ForbiddenError('Access denied. Employees can only request Pending reviews.');
+      }
+    }
+
+    // Security constraint: Employees cannot Approve Tasks or Request Changes/Reject (PMs and Reviewers can)
+    if (data.status && ['Approved', 'Rejected', 'Changes Required'].includes(data.status)) {
+      if (currentUser.roleName !== ROLES.ADMINISTRATOR && currentUser.roleName !== ROLES.REVIEWER && currentUser.roleName !== ROLES.PROJECT_MANAGER) {
+        logger.warn(`Unauthorized review status creation attempt: ${currentUser.email} [Role: ${currentUser.roleName}] tried to set review status to ${data.status}`);
+        throw new ForbiddenError(`Access denied. Only Reviewers, Project Managers, and Administrators are authorized to Approve tasks or Request Changes.`);
       }
     }
 
@@ -83,8 +92,10 @@ class ReviewService {
           currentUser.userId,
           transaction
         );
-      } else if (targetStatus === 'Changes Required') {
+      } else if (targetStatus === 'Changes Required' || targetStatus === 'Rejected') {
         await reviewRepository.updateTaskStatus(taskId, 'Changes Required', currentUser.userId, transaction);
+      } else if (targetStatus === 'Pending') {
+        await reviewRepository.updateTaskStatus(taskId, 'Under Review', currentUser.userId, transaction);
       }
 
       // Trigger Event Notifications
@@ -101,6 +112,17 @@ class ReviewService {
           },
           transaction
         );
+
+        const requester = await projectMemberRepository.getEmployeeDetails(hierarchy.TaskAssignedTo);
+        if (requester) {
+          emailService.sendReviewRequestEmail(
+            reviewer.Email,
+            `${reviewer.FirstName} ${reviewer.LastName}`,
+            `${requester.FirstName} ${requester.LastName}`,
+            hierarchy.TaskTitle,
+            hierarchy.ProjectName
+          ).catch(err => logger.error('Failed to send review request email:', err));
+        }
       } else {
         const notifTypeMap = {
           Approved: 'Review Approved',
@@ -122,6 +144,19 @@ class ReviewService {
             },
             transaction
           );
+
+          const assignee = await projectMemberRepository.getEmployeeDetails(hierarchy.TaskAssignedTo);
+          const reviewerDetails = await projectMemberRepository.getEmployeeDetails(currentUser.userId);
+          if (assignee && reviewerDetails) {
+            emailService.sendReviewOutcomeEmail(
+              assignee.Email,
+              `${assignee.FirstName} ${assignee.LastName}`,
+              hierarchy.TaskTitle,
+              targetStatus,
+              `${reviewerDetails.FirstName} ${reviewerDetails.LastName}`,
+              data.comments
+            ).catch(err => logger.error('Failed to send review outcome email:', err));
+          }
         }
       }
     });
@@ -185,9 +220,40 @@ class ReviewService {
       throw new ForbiddenError('Access denied. Employees are not authorized to update review outcomes.');
     }
 
-    if (currentUser.roleName === ROLES.PROJECT_MANAGER && existing.projectManagerId !== currentUser.userId) {
+    // Project Manager Access Check: Must manage the project or be the designated reviewer
+    if (
+      currentUser.roleName === ROLES.PROJECT_MANAGER &&
+      existing.projectManagerId !== currentUser.userId &&
+      existing.reviewer?.id !== currentUser.userId
+    ) {
       logger.warn(`Unauthorized review update attempt: PM ${currentUser.email} tried to update Review ID ${reviewId}`);
-      throw new ForbiddenError('Access denied. You can only update reviews for projects you manage.');
+      throw new ForbiddenError('Access denied. You can only update reviews for projects you manage or where you are the assigned reviewer.');
+    }
+
+    // Security constraint: Employees cannot Approve Tasks or Request Changes/Reject
+    if (updateData.status && ['Approved', 'Rejected', 'Changes Required'].includes(updateData.status)) {
+      if (currentUser.roleName !== ROLES.ADMINISTRATOR && currentUser.roleName !== ROLES.REVIEWER && currentUser.roleName !== ROLES.PROJECT_MANAGER) {
+        logger.warn(`Unauthorized review status update attempt: ${currentUser.email} [Role: ${currentUser.roleName}] tried to set review status to ${updateData.status}`);
+        throw new ForbiddenError(`Access denied. Only Reviewers, Project Managers, and Administrators are authorized to Approve tasks or Request Changes.`);
+      }
+    }
+
+    // Rule 3: Only the assigned reviewer (or Project Manager of the project / Administrator) may approve a task
+    if (updateData.status && ['Approved', 'Rejected', 'Changes Required'].includes(updateData.status)) {
+      const isAssignedReviewer = existing.reviewer?.id === currentUser.userId;
+      const isProjectManager = existing.projectManagerId === currentUser.userId;
+      const isAdmin = currentUser.roleName === ROLES.ADMINISTRATOR;
+
+      if (!isAssignedReviewer && !isProjectManager && !isAdmin) {
+        logger.warn(`Unauthorized review update attempt: User ${currentUser.email} tried to update Review ID ${reviewId} assigned to another Reviewer`);
+        throw new ForbiddenError('Access denied. Only the assigned reviewer or Project Manager is authorized to update this review outcome.');
+      }
+    }
+
+    // Rule 4: Reviewer cannot approve a task unless it is Under Review
+    if (updateData.status === 'Approved' && existing.taskStatus !== 'Under Review' && currentUser.roleName !== ROLES.ADMINISTRATOR) {
+      logger.warn(`Rejected review approval: Task status is '${existing.taskStatus}' instead of 'Under Review' for Review ID ${reviewId}`);
+      throw new BadRequestError('Access denied. A task must be in "Under Review" status to be approved.');
     }
 
     const isSelfReview =
@@ -215,7 +281,7 @@ class ReviewService {
           currentUser.userId,
           transaction
         );
-      } else if (updateData.status === 'Changes Required') {
+      } else if (updateData.status === 'Changes Required' || updateData.status === 'Rejected') {
         await reviewRepository.updateTaskStatus(existing.taskId, 'Changes Required', currentUser.userId, transaction);
       }
 
@@ -240,6 +306,19 @@ class ReviewService {
           },
           transaction
         );
+
+        const assignee = await projectMemberRepository.getEmployeeDetails(existing.taskAssignedTo);
+        const reviewerDetails = await projectMemberRepository.getEmployeeDetails(currentUser.userId);
+        if (assignee && reviewerDetails) {
+          emailService.sendReviewOutcomeEmail(
+            assignee.Email,
+            `${assignee.FirstName} ${assignee.LastName}`,
+            existing.taskTitle,
+            updateData.status,
+            `${reviewerDetails.FirstName} ${reviewerDetails.LastName}`,
+            updateData.comments
+          ).catch(err => logger.error('Failed to send review outcome email during update:', err));
+        }
       }
     });
 

@@ -238,6 +238,64 @@ const theme = createTheme({
         },
       },
     },
+
+    // ─── FormControl ──────────────────────────────────────────────────
+    // Ensures every Select/FormControl has enough minimum width to show
+    // its label text without truncating into "P..." / "Mr." etc.
+    MuiFormControl: {
+      styleOverrides: {
+        root: {
+          minWidth: 120,
+        },
+      },
+    },
+
+    // ─── Select ───────────────────────────────────────────────────────
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+        },
+        select: {
+          // Prevent the selected value from truncating with ellipsis inside
+          // very narrow containers – show at least the first few characters
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+        },
+      },
+    },
+
+    // ─── OutlinedInput ────────────────────────────────────────────────
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          transition: 'box-shadow 0.2s ease',
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#1976D2',
+          },
+          '&.Mui-focused': {
+            boxShadow: '0 0 0 3px rgba(25,118,210,0.12)',
+          },
+        },
+      },
+    },
+
+    // ─── InputLabel ───────────────────────────────────────────────────
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.9375rem',
+        },
+        // Shrunk label (floated above the field) should never be clipped
+        shrink: {
+          overflow: 'visible',
+          whiteSpace: 'nowrap',
+        },
+      },
+    },
   },
 });
 

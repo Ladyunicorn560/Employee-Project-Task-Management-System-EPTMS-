@@ -49,7 +49,7 @@ const DepartmentEditPage = () => {
     try {
       // 1. Fetch managers list first
       const managerRes = await employeeService.getAll({ limit: 100 });
-      const list = managerRes.data?.data || [];
+      const list = managerRes.data || [];
       const filtered = list.filter(
         (emp) =>
           emp.role?.name === ROLES.PROJECT_MANAGER ||

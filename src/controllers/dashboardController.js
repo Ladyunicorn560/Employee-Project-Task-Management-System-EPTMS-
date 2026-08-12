@@ -85,6 +85,24 @@ class DashboardController {
       next(err);
     }
   }
+
+  /**
+   * GET /api/v1/dashboard/overdue
+   * Returns unified list of overdue tasks and overdue pending reviews (> 24 hrs)
+   */
+  async getOverdueItems(req, res, next) {
+    try {
+      const data = await dashboardService.getOverdueItems(req.query, req.user);
+      return res.status(200).json({
+        success: true,
+        status: 200,
+        message: 'Overdue items retrieved successfully',
+        data
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new DashboardController();

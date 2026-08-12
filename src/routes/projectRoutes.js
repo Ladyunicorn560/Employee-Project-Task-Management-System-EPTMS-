@@ -73,7 +73,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  authorize(ROLES.ADMINISTRATOR),
+  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER),
   validate(projectIdParamSchema),
   projectController.deleteProject
 );

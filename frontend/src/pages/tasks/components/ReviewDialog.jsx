@@ -45,7 +45,7 @@ const ReviewDialog = ({ open, taskId, pendingReview = null, assigneeId = null, o
       setLoading(true);
       try {
         const res = await employeeService.getAll({ limit: 100 });
-        const list = res.data?.data || [];
+        const list = res.data || [];
         // Filter: active employees and prevent self-review assignment
         const filtered = list.filter((emp) => emp.status === 'Active' && emp.id !== assigneeId);
         setReviewers(filtered);

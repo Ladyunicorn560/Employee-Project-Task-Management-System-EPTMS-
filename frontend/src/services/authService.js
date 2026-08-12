@@ -46,6 +46,27 @@ const authService = {
     const response = await axiosInstance.put(API.AUTH.CHANGE_PASSWORD, payload);
     return response.data;
   },
+
+  /**
+   * Request password reset link.
+   * @param {string} email
+   * @returns {Promise<object>}
+   */
+  forgotPassword: async (email) => {
+    const response = await axiosInstance.post(API.AUTH.FORGOT_PASSWORD, { email });
+    return response.data;
+  },
+
+  /**
+   * Reset password with token.
+   * @param {string} token
+   * @param {string} newPassword
+   * @returns {Promise<object>}
+   */
+  resetPassword: async (token, newPassword) => {
+    const response = await axiosInstance.post(API.AUTH.RESET_PASSWORD, { token, newPassword });
+    return response.data;
+  },
 };
 
 export default authService;

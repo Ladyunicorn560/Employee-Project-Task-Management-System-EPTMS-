@@ -54,6 +54,15 @@ const dashboardService = {
     const response = await axiosInstance.get(API.DASHBOARD.NOTIFICATIONS);
     return response.data.data;
   },
+
+  /**
+   * Get unified overdue items (overdue tasks + pending reviews > 24hrs).
+   * @returns {Promise<Array>}
+   */
+  getOverdueItems: async () => {
+    const response = await axiosInstance.get(API.DASHBOARD.OVERDUE);
+    return response.data.data;
+  },
 };
 
 export default dashboardService;

@@ -38,9 +38,7 @@ const FormSection = ({ title, subtitle, children, sx = {} }) => {
       )}
       {(title || subtitle) && <Divider />}
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          {children}
-        </Box>
+        {children}
       </CardContent>
     </Card>
   );

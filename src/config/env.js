@@ -28,7 +28,16 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform((val) => parseInt(val, 10)),
 
   // Logging
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info')
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
+
+  // SMTP Configuration
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURE: z.string().optional().default('false'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  FRONTEND_URL: z.string().optional().default('http://localhost:5173')
 });
 
 const result = envSchema.safeParse(process.env);

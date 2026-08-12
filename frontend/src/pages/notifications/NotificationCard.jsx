@@ -8,7 +8,7 @@ import MarkEmailReadRoundedIcon from '@mui/icons-material/MarkEmailReadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DraftsRoundedIcon from '@mui/icons-material/DraftsRounded';
 
-import { formatDate } from '../../utils/dateUtils';
+import { formatDateTime } from '../../utils/dateUtils';
 
 // Helper to determine icon based on notificationType
 const getNotificationIcon = (type = '') => {
@@ -92,7 +92,7 @@ const NotificationCard = ({ notification, onMarkRead, onDelete, onClick }) => {
             {notification.notificationType}
           </Typography>
           <Typography variant="caption" color="text.disabled">
-            {formatDate(notification.createdDate)}
+            {formatDateTime(notification.createdDate)}
           </Typography>
         </Box>
         <Typography

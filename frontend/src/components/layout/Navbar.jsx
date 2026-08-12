@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, IconButton, Typography, Box,
   Avatar, Menu, MenuItem, Divider, Badge,
-  Tooltip, ListItemIcon, Chip,
+  Tooltip, ListItemIcon, Chip, TextField, InputAdornment,
 } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
@@ -12,6 +12,7 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import KeyRoundedIcon from '@mui/icons-material/KeyRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 
 import useAuth from '../../hooks/useAuth';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -169,6 +170,39 @@ const Navbar = ({ sidebarCollapsed, onMobileMenuOpen }) => {
               size="small"
               color="primary"
               sx={{ height: 20, fontSize: '0.62rem', fontWeight: 700, display: { xs: 'none', sm: 'flex' } }}
+            />
+          </Box>
+          
+          {/* Header Search */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', ml: 4, width: 320 }}>
+            <TextField
+              placeholder="Search tasks..."
+              size="small"
+              fullWidth
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const query = e.target.value.trim();
+                  if (query) {
+                    navigate(`${ROUTES.TASKS}?search=${encodeURIComponent(query)}`);
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon sx={{ color: 'text.disabled', fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  borderRadius: 2,
+                  backgroundColor: 'action.hover',
+                  '& fieldset': { border: 'none' },
+                  '&:hover fieldset': { border: 'none' },
+                  '&.Mui-focused fieldset': { border: 'none' },
+                  px: 1,
+                  height: 38,
+                }
+              }}
             />
           </Box>
 

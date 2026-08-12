@@ -2,6 +2,7 @@ const app = require('./src/app');
 const env = require('./src/config/env');
 const { initializeDb, closeDb } = require('./src/config/db');
 const logger = require('./src/utils/logger');
+const reminderScheduler = require('./src/utils/reminderScheduler');
 
 let server;
 
@@ -9,6 +10,9 @@ async function startServer() {
   try {
     // 1. Initialize SQL Server Connection Pool
     await initializeDb();
+
+    // Start background reminder checks
+    reminderScheduler.start();
 
     // 2. Start Express HTTP Server
     server = app.listen(env.PORT, () => {

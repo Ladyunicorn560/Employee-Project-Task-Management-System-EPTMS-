@@ -6,10 +6,12 @@ class TaskRepository extends BaseRepository {
    * Fetches paginated & filtered tasks list for a milestone
    */
   async findByMilestoneId(milestoneId, {
+    projectId,
     search,
     status,
     priority,
     assignedEmployeeId,
+    reviewerId,
     sortBy = 'DueDate',
     sortOrder = 'ASC',
     page = 1,
@@ -17,12 +19,21 @@ class TaskRepository extends BaseRepository {
   }) {
     const offset = (page - 1) * limit;
 
-    let whereClause = 'WHERE t.[MilestoneID] = @MilestoneID AND t.[IsDeleted] = 0';
+    let whereClause = 'WHERE t.[IsDeleted] = 0';
     const params = {
-      MilestoneID: { type: mssql.Int, value: milestoneId },
       Offset: { type: mssql.Int, value: offset },
       Limit: { type: mssql.Int, value: limit }
     };
+
+    if (milestoneId) {
+      whereClause += ' AND t.[MilestoneID] = @MilestoneID';
+      params.MilestoneID = { type: mssql.Int, value: milestoneId };
+    }
+
+    if (projectId) {
+      whereClause += ' AND m.[ProjectID] = @ProjectID';
+      params.ProjectID = { type: mssql.Int, value: projectId };
+    }
 
     if (status) {
       whereClause += ' AND t.[Status] = @Status';
@@ -37,6 +48,11 @@ class TaskRepository extends BaseRepository {
     if (assignedEmployeeId) {
       whereClause += ' AND t.[AssignedTo] = @AssignedEmployeeID';
       params.AssignedEmployeeID = { type: mssql.Int, value: assignedEmployeeId };
+    }
+
+    if (reviewerId) {
+      whereClause += ' AND t.[ReviewerID] = @ReviewerID';
+      params.ReviewerID = { type: mssql.Int, value: reviewerId };
     }
 
     if (search) {
@@ -68,6 +84,9 @@ class TaskRepository extends BaseRepository {
         ae.[LastName] AS AssigneeLastName,
         ae.[Email] AS AssigneeEmail,
         t.[ReviewerID],
+        re.[FirstName] AS ReviewerFirstName,
+        re.[LastName] AS ReviewerLastName,
+        re.[Email] AS ReviewerEmail,
         t.[Priority],
         t.[Status],
         t.[StartDate],
@@ -76,9 +95,10 @@ class TaskRepository extends BaseRepository {
         t.[CreatedDate],
         COUNT(*) OVER() AS TotalCount
       FROM [dbo].[Task] t
-      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
-      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
+      LEFT JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      LEFT JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
       LEFT JOIN [dbo].[Employee] ae ON t.[AssignedTo] = ae.[EmployeeID]
+      LEFT JOIN [dbo].[Employee] re ON t.[ReviewerID] = re.[EmployeeID]
       ${whereClause}
       ORDER BY t.[${safeSortBy}] ${safeSortOrder}
       OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;
@@ -89,7 +109,12 @@ class TaskRepository extends BaseRepository {
     const total = records.length > 0 ? records[0].TotalCount : 0;
 
     const data = records.map((rec) => {
-      const { TotalCount, AssigneeFirstName, AssigneeLastName, AssigneeEmail, ...task } = rec;
+      const {
+        TotalCount,
+        AssigneeFirstName, AssigneeLastName, AssigneeEmail,
+        ReviewerFirstName, ReviewerLastName, ReviewerEmail,
+        ...task
+      } = rec;
       return {
         id: task.TaskID,
         milestoneId: task.MilestoneID,
@@ -107,6 +132,14 @@ class TaskRepository extends BaseRepository {
             }
           : null,
         reviewerId: task.ReviewerID,
+        reviewer: task.ReviewerID
+          ? {
+              id: task.ReviewerID,
+              firstName: ReviewerFirstName,
+              lastName: ReviewerLastName,
+              email: ReviewerEmail
+            }
+          : null,
         priority: task.Priority,
         status: task.Status,
         startDate: task.StartDate,
@@ -147,6 +180,9 @@ class TaskRepository extends BaseRepository {
         ae.[LastName] AS AssigneeLastName,
         ae.[Email] AS AssigneeEmail,
         t.[ReviewerID],
+        re.[FirstName] AS ReviewerFirstName,
+        re.[LastName] AS ReviewerLastName,
+        re.[Email] AS ReviewerEmail,
         t.[Priority],
         t.[Status],
         t.[StartDate],
@@ -157,6 +193,7 @@ class TaskRepository extends BaseRepository {
       INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
       INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
       LEFT JOIN [dbo].[Employee] ae ON t.[AssignedTo] = ae.[EmployeeID]
+      LEFT JOIN [dbo].[Employee] re ON t.[ReviewerID] = re.[EmployeeID]
       WHERE t.[TaskID] = @TaskID AND t.[IsDeleted] = 0 AND m.[IsDeleted] = 0 AND p.[IsDeleted] = 0;
     `;
 
@@ -189,6 +226,14 @@ class TaskRepository extends BaseRepository {
           }
         : null,
       reviewerId: task.ReviewerID,
+      reviewer: task.ReviewerID
+        ? {
+            id: task.ReviewerID,
+            firstName: task.ReviewerFirstName,
+            lastName: task.ReviewerLastName,
+            email: task.ReviewerEmail
+          }
+        : null,
       priority: task.Priority,
       status: task.Status,
       startDate: task.StartDate,

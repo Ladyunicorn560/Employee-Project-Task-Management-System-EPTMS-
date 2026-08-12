@@ -10,7 +10,7 @@ import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import AppButton from '../../components/ui/AppButton';
 import { getNotificationIcon } from './NotificationCard';
 import { ROUTES } from '../../constants/routes';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDateTime } from '../../utils/dateUtils';
 
 /**
  * NotificationDetailsDialog
@@ -57,7 +57,7 @@ const NotificationDetailsDialog = ({ open, notification, onClose }) => {
               {notification.notificationType}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Sent: {formatDate(notification.createdDate)}
+              Sent: {formatDateTime(notification.createdDate)}
             </Typography>
           </Box>
         </Box>

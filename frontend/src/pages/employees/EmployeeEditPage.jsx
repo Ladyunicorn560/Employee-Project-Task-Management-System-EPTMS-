@@ -55,8 +55,8 @@ const EmployeeEditPage = () => {
         departmentService.getAll({ limit: 100 }),
         roleService.getAll({ limit: 100 }),
       ]);
-      setDepartments(deptRes.data?.data || []);
-      setRoles(roleRes.data?.data || []);
+      setDepartments(deptRes.data || []);
+      setRoles(roleRes.data || []);
       setLoadingOptions(false);
 
       // 2. Fetch employee details

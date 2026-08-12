@@ -19,7 +19,7 @@ const {
 router.get(
   '/',
   authenticate,
-  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER),
+  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE, ROLES.REVIEWER),
   validate(getEmployeesQuerySchema),
   employeeController.getEmployees
 );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Grid, MenuItem, Select, FormControl, InputLabel, Tooltip, IconButton, Typography } from '@mui/material';
+import { Box, Grid, MenuItem, Select, FormControl, InputLabel, Tooltip, IconButton, Typography, TextField } from '@mui/material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -67,13 +67,10 @@ const MilestoneListPage = () => {
         const assignedEmployeeId = isEmployee || isReviewer ? user?.id : undefined;
         const res = await projectService.getAll({
           limit: 100,
-          assignedEmployeeId, // Employees only see milestones for assigned projects
+          assignedEmployeeId,
         });
-        const list = res.data?.data || [];
-        setProjects(list);
-        if (list.length > 0) {
-          setSelectedProjectId(list[0].id); // Default to first project
-        }
+        setProjects(res.data || []);
+        // Do NOT auto-select first project — default to All Projects
       } catch (err) {
         console.error('Failed to load projects list for milestones:', err);
         toast.error('Failed to load projects selection options.');
@@ -84,25 +81,33 @@ const MilestoneListPage = () => {
     fetchProjectsList();
   }, [isEmployee, isReviewer, user?.id]);
 
-  // 2. Fetch Milestones for Selected Project
+  // 2. Fetch Milestones — All or filtered by project
   const fetchMilestones = useCallback(async () => {
-    if (!selectedProjectId) {
-      setMilestones([]);
-      setTotalCount(0);
-      return;
-    }
     setLoading(true);
     setError(false);
     try {
-      const res = await milestoneService.getByProjectId(selectedProjectId, {
-        page: page + 1,
-        limit: pageSize,
-        search: search || undefined,
-        status: statusFilter || undefined,
-        dueDate: dueDateFilter || undefined,
-      });
-      setMilestones(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      let res;
+      if (selectedProjectId) {
+        // Fetch milestones for a specific project
+        res = await milestoneService.getByProjectId(selectedProjectId, {
+          page: page + 1,
+          limit: pageSize,
+          search: search || undefined,
+          status: statusFilter || undefined,
+          dueDate: dueDateFilter || undefined,
+        });
+      } else {
+        // Fetch all milestones globally
+        res = await milestoneService.getAll({
+          page: page + 1,
+          limit: pageSize,
+          search: search || undefined,
+          status: statusFilter || undefined,
+          dueDate: dueDateFilter || undefined,
+        });
+      }
+      setMilestones(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Error fetching milestones:', err);
       setError(true);
@@ -272,6 +277,7 @@ const MilestoneListPage = () => {
                 onChange={handleProjectChange}
                 label="Project"
               >
+                          <MenuItem value=""><em>All Projects</em></MenuItem>
                 {projects.length === 0 ? (
                   <MenuItem value="" disabled>
                     {loadingProjects ? 'Loading projects...' : 'No projects available'}
@@ -294,13 +300,12 @@ const MilestoneListPage = () => {
               onChange={handleSearchChange}
               placeholder="Search milestone..."
               fullWidth
-              disabled={!selectedProjectId}
             />
           </Grid>
 
           {/* Status dropdown filter */}
           <Grid item xs={12} sm={2} md={2}>
-            <FormControl size="small" fullWidth disabled={!selectedProjectId}>
+            <FormControl size="small" fullWidth>
               <InputLabel id="milestone-status-filter-label">Status</InputLabel>
               <Select
                 labelId="milestone-status-filter-label"
@@ -331,7 +336,6 @@ const MilestoneListPage = () => {
                 setDueDateFilter(e.target.value);
                 setPage(0);
               }}
-              disabled={!selectedProjectId}
             />
           </Grid>
 
@@ -346,35 +350,23 @@ const MilestoneListPage = () => {
       </Box>
 
       {/* Main Data Content */}
-      {!selectedProjectId ? (
-        <EmptyState
-          title="No Project Selected"
-          description={
-            loadingProjects
-              ? 'Retrieving organizational projects list...'
-              : 'Select a project from the dropdown list to view associated milestones.'
-          }
-          icon={FlagRoundedIcon}
-        />
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={milestones}
-          loading={loading}
-          error={error}
-          onRetry={fetchMilestones}
-          total={totalCount}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          searchQuery={search}
-          onEmptyAction={handleClearFilters}
-          emptyTitle="No Milestones Found"
-          emptyDescription="This project has no milestones created or matching the search filters."
-          emptyActionLabel="Clear Filters"
-        />
-      )}
+      <DataTable
+        columns={columns}
+        rows={milestones}
+        loading={loading}
+        error={error}
+        onRetry={fetchMilestones}
+        total={totalCount}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        searchQuery={search}
+        onEmptyAction={handleClearFilters}
+        emptyTitle="No Milestones Found"
+        emptyDescription={selectedProjectId ? 'This project has no milestones matching the search filters.' : 'No milestones exist yet. Create a project and add a milestone to get started.'}
+        emptyActionLabel="Clear Filters"
+      />
 
       {/* Delete Confirmation */}
       <ConfirmDialog

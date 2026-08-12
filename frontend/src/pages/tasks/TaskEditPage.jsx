@@ -9,12 +9,12 @@ import { toast } from 'react-toastify';
 import PageHeader from '../../components/common/PageHeader';
 import FormSection from '../../components/forms/FormSection';
 import FormActions from '../../components/forms/FormActions';
-import PageLoader from '../../components/ui/PageLoader';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PageLoader from '../../components/ui/PageLoader';
 
-import taskService from '../../services/taskService';
 import projectService from '../../services/projectService';
-import employeeService from '../../services/employeeService';
+import taskService from '../../services/taskService';
+import memberService from '../../services/memberService';
 import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
@@ -22,30 +22,31 @@ import { toInputDate } from '../../utils/dateUtils';
 
 /**
  * TaskEditPage
- * Page for updating task parameters.
- * Restricts input fields dynamically: Employees can only edit Status & Actual Hours.
+ * Allows editing details of an existing milestone task.
+ * Enforces role-based permissions (Employees can only update progress/actual hours).
  */
 const TaskEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isEmployee = user?.roleName === ROLES.EMPLOYEE;
 
+  // State
   const [task, setTask] = useState(null);
   const [project, setProject] = useState(null);
-  const [employees, setEmployees] = useState([]);
+  const [projectAssignees, setProjectAssignees] = useState([]);
+  
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [forbiddenError, setForbiddenError] = useState(false);
-
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     reset,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm({
     mode: 'onBlur',
   });
@@ -57,11 +58,7 @@ const TaskEditPage = () => {
     setLoadError(false);
     setForbiddenError(false);
     try {
-      // 1. Load active employees for assignee dropdown
-      const empRes = await employeeService.getAll({ limit: 100 });
-      setEmployees((empRes.data?.data || []).filter((e) => e.status === 'Active'));
-
-      // 2. Load task details
+      // 1. Fetch task details
       const msData = await taskService.getById(id);
       if (msData) {
         setTask(msData);
@@ -83,10 +80,38 @@ const TaskEditPage = () => {
           return;
         }
 
+        // Fetch valid project assignees (Project Manager + Project Members)
+        const membersData = await memberService.getProjectMembers(msData.projectId);
+        const list = [];
+        if (projData?.projectManager) {
+          list.push({
+            id: projData.projectManager.id,
+            firstName: projData.projectManager.firstName,
+            lastName: projData.projectManager.lastName,
+            department: projData.department,
+            roleInProject: 'Project Manager',
+          });
+        }
+        if (membersData) {
+          membersData.forEach((m) => {
+            if (m.employee && m.employee.status === 'Active' && !list.some((x) => x.id === m.employee.id)) {
+              list.push({
+                id: m.employee.id,
+                firstName: m.employee.firstName,
+                lastName: m.employee.lastName,
+                department: m.employee.department,
+                roleInProject: m.roleInProject || 'Member',
+              });
+            }
+          });
+        }
+        setProjectAssignees(list);
+
         reset({
           title: msData.taskTitle || '',
           description: msData.description || '',
           assignedTo: msData.assignedEmployee?.id || '',
+          reviewerId: msData.reviewerId || '',
           priority: msData.priority || 'Low',
           status: msData.status || 'Pending',
           dueDate: toInputDate(msData.dueDate) || '',
@@ -137,29 +162,29 @@ const TaskEditPage = () => {
       let payload = {};
 
       if (isEmployee) {
-        // Employees can only update status & hours
+        // Employees can ONLY edit status and logged hours
         payload = {
           status: data.status,
           actualHours: parseFloat(data.actualHours || 0),
-          completedDate: data.status === 'Completed' ? (data.completedDate || new Date().toISOString().split('T')[0]) : null,
         };
       } else {
+        // PM / Admin full parameters
         payload = {
-          title: data.title.trim(),
+          taskTitle: data.title.trim(),
           description: data.description.trim() || null,
-          assignedTo: data.assignedTo ? parseInt(data.assignedTo, 10) : null,
+          assignedEmployeeId: data.assignedTo ? parseInt(data.assignedTo, 10) : null,
+          reviewerId: data.reviewerId ? parseInt(data.reviewerId, 10) : null,
           priority: data.priority,
           status: data.status,
           dueDate: data.dueDate,
           estimatedHours: parseFloat(data.estimatedHours || 0),
           actualHours: parseFloat(data.actualHours || 0),
-          completedDate: data.status === 'Completed' ? (data.completedDate || new Date().toISOString().split('T')[0]) : null,
+          completedDate: data.status === 'Completed' ? data.completedDate : null,
         };
       }
 
       await taskService.update(id, payload);
       toast.success('Task details updated successfully.');
-      reset(data); // clear dirty state
       navigate(`${ROUTES.TASKS}/${id}`);
     } catch (err) {
       const msg = err?.response?.data?.message || 'Failed to update task details.';
@@ -168,32 +193,26 @@ const TaskEditPage = () => {
   };
 
   if (loadingInitial) {
-    return <PageLoader message="Loading task file..." />;
+    return <PageLoader />;
+  }
+
+  if (loadError) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">Failed to load the requested task. It may not exist or database is offline.</Alert>
+      </Box>
+    );
   }
 
   if (forbiddenError) {
     return (
-      <Box>
-        <PageHeader title="Edit Task" breadcrumbItems={[{ label: 'Tasks', to: ROUTES.TASKS }, { label: 'Edit' }]} />
-        <Alert severity="error" sx={{ borderRadius: 2 }}>
-          Access denied. You are only authorized to update tasks you are assigned to or that belong to projects you manage.
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Access denied. You do not have permissions to modify this task. Tasks can only be edited by Admins, the Project Manager of the project, or the Assigned Employee.
         </Alert>
       </Box>
     );
   }
-
-  if (loadError || !task) {
-    return (
-      <Box>
-        <PageHeader title="Edit Task" breadcrumbItems={[{ label: 'Tasks', to: ROUTES.TASKS }, { label: 'Edit' }]} />
-        <Alert severity="error" sx={{ borderRadius: 2 }}>
-          Failed to load task details. The record does not exist or has been removed.
-        </Alert>
-      </Box>
-    );
-  }
-
-  const isEmployee = user?.roleName === ROLES.EMPLOYEE;
 
   return (
     <Box sx={{ maxWidth: 800 }}>
@@ -254,22 +273,42 @@ const TaskEditPage = () => {
         {/* Resources and scheduling */}
         <FormSection title="Resource & Work Management" subtitle="Update assignee, timelines, and logged actual hours">
           <Grid container spacing={2.5}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.assignedTo} disabled={isEmployee}>
                 <InputLabel id="task-edit-assignee">Assigned Employee</InputLabel>
                 <Select
                   labelId="task-edit-assignee"
                   label="Assigned Employee"
                   defaultValue=""
-                  {...register('assignedTo')}
+                  {...register('assignedTo', { required: 'Assigned employee is required' })}
                 >
-                  <MenuItem value="">Unassigned</MenuItem>
-                  {employees.map((emp) => (
+                  <MenuItem value="">Select Employee</MenuItem>
+                  {projectAssignees.map((emp) => (
                     <MenuItem key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName}
+                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.assignedTo && <FormHelperText>{errors.assignedTo.message}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!errors.reviewerId} disabled={isEmployee}>
+                <InputLabel id="task-edit-reviewer">Assigned Reviewer</InputLabel>
+                <Select
+                  labelId="task-edit-reviewer"
+                  label="Assigned Reviewer"
+                  defaultValue=""
+                  {...register('reviewerId', { required: 'Assigned reviewer is required' })}
+                >
+                  <MenuItem value="">Select Reviewer</MenuItem>
+                  {projectAssignees.map((emp) => (
+                    <MenuItem key={emp.id} value={emp.id}>
+                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.reviewerId && <FormHelperText>{errors.reviewerId.message}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -291,13 +330,18 @@ const TaskEditPage = () => {
                 <Select
                   labelId="task-edit-status-label"
                   label="Status"
-                  defaultValue="Pending"
+                  defaultValue="Not Started"
                   {...register('status', { required: 'Status is required' })}
                 >
-                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Not Started">Not Started</MenuItem>
+                  <MenuItem value="Assigned">Assigned</MenuItem>
                   <MenuItem value="In Progress">In Progress</MenuItem>
+                  <MenuItem value="Blocked">Blocked</MenuItem>
+                  <MenuItem value="Ready for Review">Ready for Review</MenuItem>
                   <MenuItem value="Under Review">Under Review</MenuItem>
+                  <MenuItem value="Changes Required">Changes Required</MenuItem>
                   <MenuItem value="Completed">Completed</MenuItem>
+                  <MenuItem value="Cancelled">Cancelled</MenuItem>
                 </Select>
                 {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
               </FormControl>

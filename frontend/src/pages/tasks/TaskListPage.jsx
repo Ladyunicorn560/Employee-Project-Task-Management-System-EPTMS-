@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Grid, MenuItem, Select, FormControl, InputLabel, Tooltip, IconButton, Typography, TextField } from '@mui/material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutlined';
@@ -55,16 +55,24 @@ const TaskListPage = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   // Filter Values
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedMilestoneId, setSelectedMilestoneId] = useState('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [reviewerFilter, setReviewerFilter] = useState('');
   const [dueDateFilter, setDueDateFilter] = useState('');
+
+  // Sync search parameters from URL (e.g. from header search)
+  useEffect(() => {
+    const q = searchParams.get('search') || '';
+    setSearch(q);
+  }, [searchParams]);
 
   // Delete Dialog State
   const [deleteId, setDeleteId] = useState(null);
@@ -82,13 +90,11 @@ const TaskListPage = () => {
           employeeService.getAll({ limit: 100 }),
         ]);
 
-        const projList = projRes.data?.data || [];
+        const projList = projRes.data || [];
         setProjects(projList);
-        setEmployees(empRes.data?.data || []);
+        setEmployees(empRes.data || []);
 
-        if (projList.length > 0) {
-          setSelectedProjectId(projList[0].id); // Default select first project
-        }
+        // Default to All Projects and All Milestones (empty strings)
       } catch (err) {
         console.error('Failed to load tasks filter dropdown lists:', err);
         toast.error('Failed to load filter select lists.');
@@ -110,7 +116,7 @@ const TaskListPage = () => {
       setLoadingMilestones(true);
       try {
         const res = await milestoneService.getByProjectId(selectedProjectId, { limit: 100 });
-        const list = res.data?.data || [];
+        const list = res.data || [];
         setMilestones(list);
         if (list.length > 0) {
           setSelectedMilestoneId(list[0].id); // Default select first milestone
@@ -128,35 +134,34 @@ const TaskListPage = () => {
 
   // 3. Fetch Tasks when selected milestone or filters change
   const fetchTasks = useCallback(async () => {
-    if (!selectedMilestoneId) {
-      setTasks([]);
-      setTotalCount(0);
-      return;
-    }
     setLoading(true);
     setError(false);
     try {
       // Role Visibility Constraint
       const assignedEmployeeId = isEmployee ? user?.id : (assigneeFilter || undefined);
+      const reviewerId = reviewerFilter || undefined;
 
-      const res = await taskService.getByMilestoneId(selectedMilestoneId, {
+      const res = await taskService.getAll({
+        projectId: selectedProjectId || undefined,
+        milestoneId: selectedMilestoneId || undefined,
         page: page + 1,
         limit: pageSize,
         search: search || undefined,
         status: statusFilter || undefined,
         priority: priorityFilter || undefined,
         assignedEmployeeId,
+        reviewerId,
       });
 
-      setTasks(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setTasks(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
-      console.error('Failed to retrieve milestone tasks:', err);
+      console.error('Failed to retrieve tasks:', err);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [selectedMilestoneId, page, pageSize, search, statusFilter, priorityFilter, assigneeFilter, isEmployee, user?.id]);
+  }, [selectedProjectId, selectedMilestoneId, page, pageSize, search, statusFilter, priorityFilter, assigneeFilter, reviewerFilter, isEmployee, user?.id]);
 
   useEffect(() => {
     fetchTasks();
@@ -187,7 +192,9 @@ const TaskListPage = () => {
     setStatusFilter('');
     setPriorityFilter('');
     setAssigneeFilter('');
+    setReviewerFilter('');
     setDueDateFilter('');
+    setSearchParams({}); // Clear query string
     setPage(0);
   };
 
@@ -234,6 +241,15 @@ const TaskListPage = () => {
             : 'Unassigned',
       },
       {
+        id: 'reviewer',
+        label: 'Assigned Reviewer',
+        minWidth: 160,
+        render: (_, row) =>
+          row.reviewer
+            ? `${row.reviewer.firstName} ${row.reviewer.lastName}`
+            : 'Unassigned',
+      },
+      {
         id: 'priority',
         label: 'Priority',
         minWidth: 100,
@@ -242,14 +258,93 @@ const TaskListPage = () => {
       {
         id: 'status',
         label: 'Status',
-        minWidth: 100,
-        render: (val) => <StatusChip status={val} />,
+        minWidth: 130,
+        render: (val, row) => {
+          const isAssigned = row.assignedEmployee?.id === user?.id;
+          const canUserEdit = canManageTasks || (isEmployee && isAssigned);
+
+          if (!canUserEdit) {
+            return <StatusChip status={val} />;
+          }
+
+          return (
+            <Select
+              value={val}
+              size="small"
+              variant="standard"
+              disableUnderline
+              onChange={async (e) => {
+                const newStatus = e.target.value;
+                try {
+                  await taskService.update(row.id, { status: newStatus });
+                  toast.success(`Task status updated to ${newStatus}`);
+                  fetchTasks();
+                } catch (err) {
+                  const msg = err?.response?.data?.message || 'Failed to update status.';
+                  toast.error(msg);
+                }
+              }}
+              renderValue={(selected) => <StatusChip status={selected} />}
+              sx={{
+                '& .MuiSelect-select': {
+                  paddingY: 0,
+                  paddingX: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+              }}
+            >
+              <MenuItem value="Not Started">Not Started</MenuItem>
+              <MenuItem value="Assigned">Assigned</MenuItem>
+              <MenuItem value="In Progress">In Progress</MenuItem>
+              <MenuItem value="Blocked">Blocked</MenuItem>
+              <MenuItem value="Ready for Review">Ready for Review</MenuItem>
+              <MenuItem value="Under Review">Under Review</MenuItem>
+              <MenuItem value="Changes Required">Changes Required</MenuItem>
+              <MenuItem value="Completed">Completed</MenuItem>
+              <MenuItem value="Cancelled">Cancelled</MenuItem>
+            </Select>
+          );
+        },
       },
       {
         id: 'timeline',
         label: 'Due Date',
-        minWidth: 120,
-        render: (_, row) => formatDate(row.dueDate),
+        minWidth: 140,
+        render: (_, row) => {
+          const isTaskOverdue = row.status !== 'Completed' && row.status !== 'Cancelled' && row.dueDate && new Date(row.dueDate) < new Date();
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography 
+                variant="body2" 
+                color={isTaskOverdue ? 'error.main' : 'text.primary'} 
+                fontWeight={isTaskOverdue ? 600 : 500}
+              >
+                {formatDate(row.dueDate)}
+              </Typography>
+              {isTaskOverdue && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'error.main',
+                    fontWeight: 800,
+                    backgroundColor: '#FFF5F5',
+                    px: 0.5,
+                    py: 0.1,
+                    borderRadius: '4px',
+                    border: '1px solid',
+                    borderColor: 'error.light',
+                    textTransform: 'uppercase',
+                    fontSize: '0.55rem',
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Overdue
+                </Typography>
+              )}
+            </Box>
+          );
+        },
       },
       {
         id: 'hours',
@@ -295,7 +390,7 @@ const TaskListPage = () => {
         },
       },
     ],
-    [canManageTasks, user?.id, isEmployee, navigate]
+    [canManageTasks, user?.id, isEmployee, navigate, fetchTasks]
   );
 
   return (
@@ -320,9 +415,9 @@ const TaskListPage = () => {
 
       {/* Cascading Filter Bar */}
       <Box sx={{ mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          {/* Project cascading selector */}
-          <Grid item xs={12} sm={4} md={2.5}>
+        <Grid container spacing={2.5} alignItems="center">
+          {/* Row 1: Project & Milestone Selectors */}
+          <Grid item xs={12} md={6}>
             <FormControl size="small" fullWidth disabled={loadingProjects}>
               <InputLabel id="task-project-select-label">Project</InputLabel>
               <Select
@@ -331,23 +426,19 @@ const TaskListPage = () => {
                 onChange={handleProjectChange}
                 label="Project"
               >
-                {projects.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    {loadingProjects ? 'Loading...' : 'No projects'}
+                <MenuItem value="">
+                  <em>All Projects</em>
+                </MenuItem>
+                {projects.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.projectName}
                   </MenuItem>
-                ) : (
-                  projects.map((p) => (
-                    <MenuItem key={p.id} value={p.id}>
-                      {p.projectName}
-                    </MenuItem>
-                  ))
-                )}
+                ))}
               </Select>
             </FormControl>
           </Grid>
 
-          {/* Milestone cascading selector */}
-          <Grid item xs={12} sm={4} md={2.5}>
+          <Grid item xs={12} md={6}>
             <FormControl size="small" fullWidth disabled={loadingMilestones || !selectedProjectId}>
               <InputLabel id="task-ms-select-label">Milestone</InputLabel>
               <Select
@@ -356,35 +447,30 @@ const TaskListPage = () => {
                 onChange={handleMilestoneChange}
                 label="Milestone"
               >
-                {milestones.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    {loadingMilestones ? 'Loading...' : 'No milestones'}
+                <MenuItem value="">
+                  <em>All Milestones</em>
+                </MenuItem>
+                {milestones.map((m) => (
+                  <MenuItem key={m.id} value={m.id}>
+                    {m.milestoneTitle}
                   </MenuItem>
-                ) : (
-                  milestones.map((m) => (
-                    <MenuItem key={m.id} value={m.id}>
-                      {m.milestoneTitle}
-                    </MenuItem>
-                  ))
-                )}
+                ))}
               </Select>
             </FormControl>
           </Grid>
 
-          {/* Search text */}
-          <Grid item xs={12} sm={4} md={2.5}>
+          {/* Row 2: Search and Status / Priority / Assignee / Reviewer filters */}
+          <Grid item xs={12} sm={6} md={3.5}>
             <SearchBar
               value={search}
               onChange={handleSearchChange}
               placeholder="Search tasks..."
               fullWidth
-              disabled={!selectedMilestoneId}
             />
           </Grid>
 
-          {/* Status filter select */}
-          <Grid item xs={12} sm={3} md={1.5}>
-            <FormControl size="small" fullWidth disabled={!selectedMilestoneId}>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl size="small" fullWidth sx={{ minWidth: 130 }}>
               <InputLabel id="task-status-filter-label">Status</InputLabel>
               <Select
                 labelId="task-status-filter-label"
@@ -401,9 +487,8 @@ const TaskListPage = () => {
             </FormControl>
           </Grid>
 
-          {/* Priority filter select */}
-          <Grid item xs={12} sm={3} md={1.5}>
-            <FormControl size="small" fullWidth disabled={!selectedMilestoneId}>
+          <Grid item xs={12} sm={6} md={2.1}>
+            <FormControl size="small" fullWidth sx={{ minWidth: 120 }}>
               <InputLabel id="task-priority-filter-label">Priority</InputLabel>
               <Select
                 labelId="task-priority-filter-label"
@@ -419,10 +504,9 @@ const TaskListPage = () => {
             </FormControl>
           </Grid>
 
-          {/* Employee filter select (Admins and PMs only) */}
           {!isEmployee && (
-            <Grid item xs={12} sm={3} md={1.5}>
-              <FormControl size="small" fullWidth disabled={!selectedMilestoneId}>
+            <Grid item xs={12} sm={6} md={2.2}>
+              <FormControl size="small" fullWidth sx={{ minWidth: 130 }}>
                 <InputLabel id="task-assignee-filter-label">Assignee</InputLabel>
                 <Select
                   labelId="task-assignee-filter-label"
@@ -441,7 +525,28 @@ const TaskListPage = () => {
             </Grid>
           )}
 
-          {(search || statusFilter || priorityFilter || assigneeFilter || dueDateFilter) && (
+          {!isEmployee && (
+            <Grid item xs={12} sm={6} md={2.2}>
+              <FormControl size="small" fullWidth sx={{ minWidth: 130 }}>
+                <InputLabel id="task-reviewer-filter-label">Reviewer</InputLabel>
+                <Select
+                  labelId="task-reviewer-filter-label"
+                  value={reviewerFilter}
+                  onChange={handleFilterChange(setReviewerFilter)}
+                  label="Reviewer"
+                >
+                  <MenuItem value="">All</MenuItem>
+                  {employees.map((e) => (
+                    <MenuItem key={e.id} value={e.id}>
+                      {e.firstName} {e.lastName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          {(search || statusFilter || priorityFilter || assigneeFilter || reviewerFilter || dueDateFilter) && (
             <Grid item xs={12} sm={12} md={1}>
               <AppButton variant="outlined" size="small" fullWidth onClick={handleClearFilters}>
                 Clear
@@ -452,35 +557,23 @@ const TaskListPage = () => {
       </Box>
 
       {/* Main Data Table */}
-      {!selectedMilestoneId ? (
-        <EmptyState
-          title="No Milestone Selected"
-          description={
-            loadingProjects || loadingMilestones
-              ? 'Loading workspace collections...'
-              : 'Select both a Project and a Milestone to load task schedules.'
-          }
-          icon={TaskAltRoundedIcon}
-        />
-      ) : (
-        <DataTable
-          columns={columns}
-          rows={tasks}
-          loading={loading}
-          error={error}
-          onRetry={fetchTasks}
-          total={totalCount}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          searchQuery={search}
-          onEmptyAction={handleClearFilters}
-          emptyTitle="No Tasks Scheduled"
-          emptyDescription="Create a new task pipeline item to allocate work deliverables."
-          emptyActionLabel="Clear Filters"
-        />
-      )}
+      <DataTable
+        columns={columns}
+        rows={tasks}
+        loading={loading}
+        error={error}
+        onRetry={fetchTasks}
+        total={totalCount}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        searchQuery={search}
+        onEmptyAction={handleClearFilters}
+        emptyTitle="No Tasks Scheduled"
+        emptyDescription="Create a new task pipeline item to allocate work deliverables."
+        emptyActionLabel="Clear Filters"
+      />
 
       {/* Delete Confirmation */}
       <ConfirmDialog

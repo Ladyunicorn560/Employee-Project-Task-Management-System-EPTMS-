@@ -46,7 +46,7 @@ const ProjectMemberDialog = ({ open, projectId, assignedMemberIds = [], onClose,
       setLoading(true);
       try {
         const res = await employeeService.getAll({ limit: 100 });
-        const list = res.data?.data || [];
+        const list = res.data || [];
         // Filter out employees who are:
         // 1. Inactive or Suspended
         // 2. Already assigned as project member

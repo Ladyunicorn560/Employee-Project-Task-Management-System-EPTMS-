@@ -87,12 +87,12 @@ const RoleListPage = () => {
         search: search || undefined,
       });
 
-      setRoles(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setRoles(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Error fetching roles:', err);
       setError(true);
-      toast.error('Failed to load system roles list.');
+      toast.toast ? toast.toast.error('Failed to load system roles list.') : toast.error('Failed to load system roles list.');
     } finally {
       setLoading(false);
     }

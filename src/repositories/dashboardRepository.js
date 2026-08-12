@@ -133,6 +133,9 @@ class DashboardRepository extends BaseRepository {
     } else if (roleName === 'Employee') {
       whereClause += ' AND EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm WHERE pm.[ProjectID] = p.[ProjectID] AND pm.[EmployeeID] = @EmpUserId AND pm.[IsDeleted] = 0)';
       params.EmpUserId = { type: mssql.Int, value: userId };
+    } else if (roleName === 'Reviewer') {
+      whereClause += ' AND (EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm WHERE pm.[ProjectID] = p.[ProjectID] AND pm.[EmployeeID] = @RevUserId AND pm.[IsDeleted] = 0) OR EXISTS (SELECT 1 FROM [dbo].[Task] t INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID] WHERE m.[ProjectID] = p.[ProjectID] AND t.[ReviewerID] = @RevUserId AND t.[IsDeleted] = 0))';
+      params.RevUserId = { type: mssql.Int, value: userId };
     }
 
     if (departmentId) {
@@ -311,6 +314,9 @@ class DashboardRepository extends BaseRepository {
     } else if (roleName === 'Project Manager') {
       whereClause += ' AND (e.[EmployeeID] = @PMUserId OR EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm INNER JOIN [dbo].[Project] p ON pm.[ProjectID] = p.[ProjectID] WHERE pm.[EmployeeID] = e.[EmployeeID] AND p.[ProjectManagerID] = @PMUserId AND pm.[IsDeleted] = 0))';
       params.PMUserId = { type: mssql.Int, value: userId };
+    } else if (roleName === 'Reviewer') {
+      whereClause += ' AND (e.[EmployeeID] = @RevUserId OR EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm INNER JOIN [dbo].[Project] p ON pm.[ProjectID] = p.[ProjectID] WHERE pm.[EmployeeID] = e.[EmployeeID] AND EXISTS (SELECT 1 FROM [dbo].[Task] t INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID] WHERE m.[ProjectID] = p.[ProjectID] AND t.[ReviewerID] = @RevUserId AND t.[IsDeleted] = 0) AND pm.[IsDeleted] = 0))';
+      params.RevUserId = { type: mssql.Int, value: userId };
     }
 
     if (departmentId) {
@@ -417,6 +423,120 @@ class DashboardRepository extends BaseRepository {
       byType,
       byChannel
     };
+  }
+  /**
+   * Gets unified overdue items: overdue tasks + overdue pending reviews (> 24 hrs)
+   */
+  async getOverdueItems({ roleName, userId }) {
+    const params = {};
+
+    // Role-based task WHERE clause
+    let taskWhere = `
+      WHERE t.[IsDeleted] = 0
+        AND m.[IsDeleted] = 0
+        AND p.[IsDeleted] = 0
+        AND t.[Status] NOT IN (N'Completed', N'Cancelled')
+        AND t.[DueDate] < CAST(SYSUTCDATETIME() AS DATE)
+    `;
+
+    // Role-based review WHERE clause
+    let reviewWhere = `
+      WHERE r.[IsDeleted] = 0
+        AND r.[Status] = N'Pending'
+        AND t.[IsDeleted] = 0
+        AND m.[IsDeleted] = 0
+        AND p.[IsDeleted] = 0
+        AND DATEDIFF(HOUR, r.[CreatedDate], SYSUTCDATETIME()) >= 24
+    `;
+
+    if (roleName === 'Project Manager') {
+      taskWhere += ' AND (p.[ProjectManagerID] = @UserId OR EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm WHERE pm.[ProjectID] = p.[ProjectID] AND pm.[EmployeeID] = @UserId AND pm.[IsDeleted] = 0))';
+      reviewWhere += ' AND (p.[ProjectManagerID] = @UserId OR EXISTS (SELECT 1 FROM [dbo].[ProjectMember] pm WHERE pm.[ProjectID] = p.[ProjectID] AND pm.[EmployeeID] = @UserId AND pm.[IsDeleted] = 0))';
+      params.UserId = { type: mssql.Int, value: userId };
+    } else if (roleName === 'Employee') {
+      taskWhere += ' AND t.[AssignedTo] = @UserId';
+      reviewWhere += ' AND t.[AssignedTo] = @UserId'; // reviews on tasks they submitted
+      params.UserId = { type: mssql.Int, value: userId };
+    } else if (roleName === 'Reviewer') {
+      taskWhere += ' AND t.[ReviewerID] = @UserId';
+      reviewWhere += ' AND r.[ReviewerID] = @UserId';
+      params.UserId = { type: mssql.Int, value: userId };
+    }
+
+    const queryStr = `
+      -- Overdue Tasks
+      SELECT
+        'task' AS ItemType,
+        t.[TaskID] AS ItemId,
+        t.[Title] AS ItemTitle,
+        t.[Status],
+        t.[Priority],
+        t.[DueDate],
+        DATEDIFF(DAY, t.[DueDate], CAST(SYSUTCDATETIME() AS DATE)) AS DaysOverdue,
+        NULL AS HoursOverdue,
+        p.[ProjectName],
+        p.[ProjectID],
+        e.[FirstName] + ' ' + e.[LastName] AS AssigneeName,
+        e.[Email] AS AssigneeEmail,
+        NULL AS ReviewerName,
+        NULL AS ReviewerEmail,
+        t.[CreatedDate] AS CreatedDate
+      FROM [dbo].[Task] t
+      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
+      INNER JOIN [dbo].[Employee] e ON t.[AssignedTo] = e.[EmployeeID]
+      ${taskWhere}
+
+      UNION ALL
+
+      -- Overdue Reviews (pending > 24 hrs)
+      SELECT
+        'review' AS ItemType,
+        r.[ReviewID] AS ItemId,
+        t.[Title] AS ItemTitle,
+        r.[Status],
+        NULL AS Priority,
+        NULL AS DueDate,
+        NULL AS DaysOverdue,
+        DATEDIFF(HOUR, r.[CreatedDate], SYSUTCDATETIME()) AS HoursOverdue,
+        p.[ProjectName],
+        p.[ProjectID],
+        assignee.[FirstName] + ' ' + assignee.[LastName] AS AssigneeName,
+        assignee.[Email] AS AssigneeEmail,
+        rev.[FirstName] + ' ' + rev.[LastName] AS ReviewerName,
+        rev.[Email] AS ReviewerEmail,
+        r.[CreatedDate] AS CreatedDate
+      FROM [dbo].[Review] r
+      INNER JOIN [dbo].[Task] t ON r.[TaskID] = t.[TaskID]
+      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
+      INNER JOIN [dbo].[Employee] rev ON r.[ReviewerID] = rev.[EmployeeID]
+      INNER JOIN [dbo].[Employee] assignee ON t.[AssignedTo] = assignee.[EmployeeID]
+      ${reviewWhere}
+
+      ORDER BY CreatedDate DESC;
+    `;
+
+    const result = await this.query(queryStr, params);
+    const rows = result.recordset || [];
+
+    return rows.map((row) => ({
+      type: row.ItemType,
+      id: row.ItemId,
+      title: row.ItemTitle,
+      status: row.Status,
+      priority: row.Priority,
+      dueDate: row.DueDate,
+      daysOverdue: row.DaysOverdue,
+      hoursOverdue: row.HoursOverdue,
+      projectName: row.ProjectName,
+      projectId: row.ProjectID,
+      assigneeName: row.AssigneeName,
+      assigneeEmail: row.AssigneeEmail,
+      reviewerName: row.ReviewerName,
+      reviewerEmail: row.ReviewerEmail,
+      createdDate: row.CreatedDate,
+    }));
   }
 }
 

@@ -25,7 +25,7 @@ taskSubtasksRouter.get(
 
 taskSubtasksRouter.post(
   '/',
-  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER),
+  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE),
   validate(createSubtaskSchema),
   subtaskController.createSubtask
 );

@@ -64,8 +64,8 @@ const EmployeeListPage = () => {
           departmentService.getAll({ limit: 100 }),
           roleService.getAll({ limit: 100 }),
         ]);
-        setDepartments(deptRes.data?.data || []);
-        setRoles(roleRes.data?.data || []);
+        setDepartments(deptRes.data || []);
+        setRoles(roleRes.data || []);
       } catch (err) {
         console.error('Failed to load filter option lists:', err);
       }
@@ -87,12 +87,12 @@ const EmployeeListPage = () => {
         status: statusFilter || undefined,
       });
 
-      setEmployees(res.data?.data || []);
-      setTotalCount(res.data?.total || 0);
+      setEmployees(res.data || []);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err) {
       console.error('Error fetching employees:', err);
       setError(true);
-      toast.error('Failed to load employees list.');
+      toast.toast ? toast.toast.error('Failed to load employees list.') : toast.error('Failed to load employees list.');
     } finally {
       setLoading(false);
     }

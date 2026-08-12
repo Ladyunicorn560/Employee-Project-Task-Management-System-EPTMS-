@@ -3,7 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const authenticate = require('../middlewares/authenticate');
 const validate = require('../middlewares/validate');
-const { loginSchema, changePasswordSchema } = require('../validators/authValidators');
+const { loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } = require('../validators/authValidators');
 const { authRateLimiter } = require('../config/security');
 
 /**
@@ -11,6 +11,18 @@ const { authRateLimiter } = require('../config/security');
  * @desc  Public user login endpoint – strict rate limited (10 req / 15 min)
  */
 router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
+
+/**
+ * @route POST /api/v1/auth/forgot-password
+ * @desc  Request password reset link
+ */
+router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
+
+/**
+ * @route POST /api/v1/auth/reset-password
+ * @desc  Submit new password using reset token
+ */
+router.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
 /**
  * @route GET /api/v1/auth/me

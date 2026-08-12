@@ -143,6 +143,14 @@ class MilestoneService {
       }
     }
 
+    // 4.5 If status is set to Completed, check for open tasks
+    if (updateData.status === 'Completed') {
+      const incompleteCount = await milestoneRepository.getIncompleteTaskCount(milestoneId);
+      if (incompleteCount > 0) {
+        throw new BadRequestError(`Cannot complete milestone '${existing.milestoneTitle}' (ID: ${milestoneId}) because it has ${incompleteCount} incomplete task(s).`);
+      }
+    }
+
     // 5. Update milestone within SQL transaction
     await milestoneRepository.withTransaction(async (transaction) => {
       await milestoneRepository.update(milestoneId, updateData, currentUser.userId, transaction);

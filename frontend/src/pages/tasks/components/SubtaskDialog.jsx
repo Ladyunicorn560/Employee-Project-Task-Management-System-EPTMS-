@@ -48,7 +48,7 @@ const SubtaskDialog = ({ open, subtask, taskId, onClose, onSuccess }) => {
       setLoading(true);
       try {
         const res = await employeeService.getAll({ limit: 100 });
-        setEmployees((res.data?.data || []).filter((e) => e.status === 'Active'));
+        setEmployees((res.data || []).filter((e) => e.status === 'Active'));
       } catch (err) {
         console.error('Failed to load employees for subtasks:', err);
       } finally {
@@ -167,7 +167,7 @@ const SubtaskDialog = ({ open, subtask, taskId, onClose, onSuccess }) => {
             </Grid>
 
             {/* Assignee select */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.assignedTo} disabled={loading || isSubmitting}>
                 <InputLabel id="subtask-dialog-assignee-label">Assignee</InputLabel>
                 <Select
@@ -202,7 +202,7 @@ const SubtaskDialog = ({ open, subtask, taskId, onClose, onSuccess }) => {
             </Grid>
 
             {/* Status select */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.status} disabled={isSubmitting}>
                 <InputLabel id="subtask-dialog-status-label">Status</InputLabel>
                 <Select
@@ -220,7 +220,7 @@ const SubtaskDialog = ({ open, subtask, taskId, onClose, onSuccess }) => {
             </Grid>
 
             {/* Priority select */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} md={6}>
               <FormControl fullWidth error={!!errors.priority} disabled={isSubmitting}>
                 <InputLabel id="subtask-dialog-priority-label">Priority</InputLabel>
                 <Select

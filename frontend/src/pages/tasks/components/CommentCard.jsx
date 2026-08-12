@@ -4,7 +4,7 @@ import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutl
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 
 import CommentEditor from './CommentEditor';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 /**
  * CommentCard
@@ -57,7 +57,7 @@ const CommentCard = ({ comment, currentUserId, isAdminOrPm, onUpdate, onDelete }
               {authorName}
             </Typography>
             <Typography variant="caption" color="text.disabled">
-              {formatDate(comment.createdDate)}
+              {formatDateTime(comment.createdDate)}
             </Typography>
             {isUpdated && (
               <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>

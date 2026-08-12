@@ -92,9 +92,32 @@ const deleteTask = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route GET /api/v1/tasks
+ * @desc Get tasks globally (all projects or milestones)
+ * @access Private (All authenticated users)
+ */
+const getAllTasks = asyncHandler(async (req, res) => {
+  const result = await taskService.getAllTasks(req.query, req.user);
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    status: HTTP_STATUS.OK,
+    message: 'Tasks retrieved successfully',
+    data: result.data,
+    pagination: {
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages
+    }
+  });
+});
+
 module.exports = {
   createTask,
   getTasksByMilestoneId,
+  getAllTasks,
   getTaskById,
   updateTask,
   deleteTask

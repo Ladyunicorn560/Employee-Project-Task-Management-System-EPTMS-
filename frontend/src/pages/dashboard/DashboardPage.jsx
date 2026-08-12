@@ -19,6 +19,7 @@ import ProjectAnalyticsCard from './components/ProjectAnalyticsCard';
 import TaskAnalyticsCard from './components/TaskAnalyticsCard';
 import EmployeeAnalyticsCard from './components/EmployeeAnalyticsCard';
 import NotificationAnalyticsCard from './components/NotificationAnalyticsCard';
+import OverdueItemsCard from './components/OverdueItemsCard';
 import { ROLES } from '../../constants/roles';
 
 /**
@@ -46,9 +47,76 @@ const DashboardPage = () => {
   const isAdmin = user?.roleName === ROLES.ADMINISTRATOR;
   const isPM = user?.roleName === ROLES.PROJECT_MANAGER;
   const isEmployee = user?.roleName === ROLES.EMPLOYEE;
+  const isReviewer = user?.roleName === ROLES.REVIEWER;
 
   // Stat cards configurations
-  const primaryStats = [
+  const primaryStats = isEmployee ? [
+    {
+      label: 'My Assigned Tasks',
+      value: overview?.tasks?.total ?? '—',
+      icon: TaskAltRoundedIcon,
+      color: '#1976D2',
+      subtext: `${overview?.tasks?.inProgress ?? 0} in progress`,
+      tooltip: 'Total tasks assigned to you',
+    },
+    {
+      label: 'My Projects',
+      value: overview?.projects?.total ?? '—',
+      icon: FolderRoundedIcon,
+      color: '#26A69A',
+      subtext: `${overview?.projects?.active ?? 0} active projects`,
+      tooltip: 'Total projects you are assigned to as a member',
+    },
+    {
+      label: 'My Task Completion %',
+      value: overview?.tasks ? `${overview.tasks.completionRate}%` : '—',
+      icon: TaskAltRoundedIcon,
+      color: '#2E7D32',
+      subtext: `${overview?.tasks?.completed ?? 0} completed`,
+      tooltip: 'Your task completion rate percentage',
+    },
+    {
+      label: 'My Overdue Tasks',
+      value: overview?.tasks?.overdue ?? '—',
+      icon: WarningAmberRoundedIcon,
+      color: '#D32F2F',
+      subtext: 'Requires attention',
+      tooltip: 'Your assigned tasks past their due date',
+    },
+  ] : isReviewer ? [
+    {
+      label: 'My Tasks to Review',
+      value: overview?.tasks?.underReview ?? '—',
+      icon: TaskAltRoundedIcon,
+      color: '#1976D2',
+      subtext: `${overview?.tasks?.total ?? 0} total assigned`,
+      tooltip: 'Tasks pending review under your supervision',
+    },
+    {
+      label: 'My Scoped Projects',
+      value: overview?.projects?.active ?? '—',
+      icon: FolderRoundedIcon,
+      color: '#26A69A',
+      subtext: `${overview?.projects?.total ?? 0} total projects`,
+      tooltip: 'Active projects where you are reviewer or member',
+    },
+    {
+      label: 'My Task Completion %',
+      value: overview?.tasks ? `${overview.tasks.completionRate}%` : '—',
+      icon: TaskAltRoundedIcon,
+      color: '#2E7D32',
+      subtext: `${overview?.tasks?.completed ?? 0} tasks completed`,
+      tooltip: 'Completion rate percentage of tasks under your review scope',
+    },
+    {
+      label: 'My Overdue Tasks',
+      value: overview?.tasks?.overdue ?? '—',
+      icon: WarningAmberRoundedIcon,
+      color: '#D32F2F',
+      subtext: 'Requires attention',
+      tooltip: 'Tasks past their due date in your review scope',
+    },
+  ] : [
     {
       label: 'Total Employees',
       value: overview?.employees?.total ?? '—',
@@ -70,7 +138,7 @@ const DashboardPage = () => {
       value: overview?.tasks ? `${overview.tasks.completionRate}%` : '—',
       icon: TaskAltRoundedIcon,
       color: '#2E7D32',
-      subtext: `${overview?.tasks?.completed ?? 0} tasks completed`,
+      subtext: `${overview?.tasks?.completed ?? 0} of ${overview?.tasks?.total ?? 0} tasks completed`,
       tooltip: 'Overall task completion percentage rate',
     },
     {
@@ -157,6 +225,11 @@ const DashboardPage = () => {
           <NotificationAnalyticsCard />
         </Grid>
       </Grid>
+
+      {/* ── Unified Overdue Items Section ──────────────────────── */}
+      <Box sx={{ mt: 3 }}>
+        <OverdueItemsCard />
+      </Box>
     </Box>
   );
 };

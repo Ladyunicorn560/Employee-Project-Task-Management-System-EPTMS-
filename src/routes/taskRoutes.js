@@ -14,7 +14,8 @@ const {
   createTaskSchema,
   updateTaskSchema,
   taskIdParamSchema,
-  getTasksQuerySchema
+  getTasksQuerySchema,
+  getAllTasksQuerySchema
 } = require('../validators/taskValidators');
 
 // -----------------------------------------------------------------------------
@@ -42,8 +43,15 @@ directTasksRouter.use('/:taskId/attachments', taskAttachmentsRouter);
 directTasksRouter.use('/:taskId/reviews', taskReviewsRouter);
 
 // -----------------------------------------------------------------------------
-// Direct Routes (/api/v1/tasks/:id)
+// Direct Routes (/api/v1/tasks)
 // -----------------------------------------------------------------------------
+directTasksRouter.get(
+  '/',
+  authenticate,
+  validate(getAllTasksQuerySchema),
+  taskController.getAllTasks
+);
+
 directTasksRouter.get(
   '/:id',
   authenticate,

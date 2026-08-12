@@ -55,7 +55,7 @@ const ProjectMembersTab = ({ project }) => {
     const loadDepts = async () => {
       try {
         const res = await departmentService.getAll({ limit: 100 });
-        setDepartments(res.data?.data || []);
+        setDepartments(res.data || []);
       } catch (err) {
         console.error('Failed to load departments for members filter:', err);
       }

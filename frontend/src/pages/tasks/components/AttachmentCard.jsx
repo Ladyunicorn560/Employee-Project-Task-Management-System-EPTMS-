@@ -8,7 +8,7 @@ import FolderZipRoundedIcon from '@mui/icons-material/FolderZipRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DownloadForOfflineRoundedIcon from '@mui/icons-material/DownloadForOfflineRounded';
 
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 // Helper to format file size in bytes to human readable string (KB/MB)
 const formatBytes = (bytes, decimals = 2) => {
@@ -87,7 +87,7 @@ const AttachmentCard = ({ attachment, currentUserId, isAdminOrPm, onDelete }) =>
             </Typography>
             <Typography variant="caption" color="text.disabled">•</Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatDate(attachment.createdDate)}
+              {formatDateTime(attachment.createdDate)}
             </Typography>
           </Box>
         </Box>

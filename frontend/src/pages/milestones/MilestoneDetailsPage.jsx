@@ -22,7 +22,7 @@ import milestoneService from '../../services/milestoneService';
 import projectService from '../../services/projectService';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 
 const DetailInfoRow = ({ label, value }) => (
   <Box sx={{ display: 'flex', py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -161,6 +161,7 @@ const MilestoneDetailsPage = () => {
                   <DetailInfoRow label="Status" value={<StatusChip status={milestone.status} />} />
                   <DetailInfoRow label="Due Date" value={formatDate(milestone.dueDate)} />
                   <DetailInfoRow label="Completed Date" value={formatDate(milestone.completedDate)} />
+                  <DetailInfoRow label="Created On" value={formatDateTime(milestone.createdDate)} />
                 </Box>
               </CardContent>
             </Card>

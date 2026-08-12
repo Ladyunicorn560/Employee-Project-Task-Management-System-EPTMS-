@@ -1,6 +1,6 @@
 import { Box, Typography, Card, CardContent, Avatar } from '@mui/material';
 import ReviewStatusChip from '../../../components/common/ReviewStatusChip';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from '../../../utils/dateUtils';
 
 /**
  * ReviewTimeline
@@ -52,7 +52,7 @@ const ReviewTimeline = ({ reviews = [] }) => {
                     <ReviewStatusChip status={rev.status} />
                   </Box>
                   <Typography variant="caption" color="text.secondary">
-                    Requested: {formatDate(rev.createdDate)}
+                     Requested: {formatDateTime(rev.createdDate)}
                   </Typography>
                 </Box>
 
@@ -91,7 +91,7 @@ const ReviewTimeline = ({ reviews = [] }) => {
                 {rev.reviewedDate && (
                   <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
                     <Typography variant="caption" color="text.disabled">
-                      Reviewed on: {formatDate(rev.reviewedDate)}
+                      Reviewed on: {formatDateTime(rev.reviewedDate)}
                     </Typography>
                   </Box>
                 )}

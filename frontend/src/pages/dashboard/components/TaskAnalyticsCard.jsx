@@ -56,6 +56,7 @@ const TaskAnalyticsCard = ({ filters }) => {
 
   const priorityMap = data.byPriority || {};
   const pieData = [
+    { label: 'Critical Priority', value: priorityMap['Critical'] || 0, color: '#9C27B0' },
     { label: 'High Priority', value: priorityMap['High'] || 0, color: '#D32F2F' },
     { label: 'Medium Priority', value: priorityMap['Medium'] || 0, color: '#F57C00' },
     { label: 'Low Priority', value: priorityMap['Low'] || 0, color: '#1976D2' },

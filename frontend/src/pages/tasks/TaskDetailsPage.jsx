@@ -30,7 +30,7 @@ import taskService from '../../services/taskService';
 import projectService from '../../services/projectService';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 
 const DetailInfoRow = ({ label, value }) => (
   <Box sx={{ display: 'flex', py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -174,12 +174,53 @@ const TaskDetailsPage = () => {
                   <DetailInfoRow label="Description" value={task.description || 'No description provided.'} />
                   <DetailInfoRow label="Priority" value={<PriorityChip priority={task.priority} size="medium" />} />
                   <DetailInfoRow label="Status" value={<StatusChip status={task.status} />} />
-                  <DetailInfoRow label="Due Date" value={formatDate(task.dueDate)} />
+                  <DetailInfoRow 
+                    label="Due Date" 
+                    value={
+                      (() => {
+                        const isTaskOverdue = task.status !== 'Completed' && task.status !== 'Cancelled' && task.dueDate && new Date(task.dueDate) < new Date();
+                        return (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography 
+                              variant="body2" 
+                              color={isTaskOverdue ? 'error.main' : 'text.primary'} 
+                              fontWeight={isTaskOverdue ? 600 : 500}
+                              sx={{ m: 0 }}
+                            >
+                              {formatDate(task.dueDate)}
+                            </Typography>
+                            {isTaskOverdue && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  color: 'error.main',
+                                  fontWeight: 800,
+                                  backgroundColor: '#FFF5F5',
+                                  px: 0.75,
+                                  py: 0.2,
+                                  borderRadius: '4px',
+                                  border: '1px solid',
+                                  borderColor: 'error.light',
+                                  textTransform: 'uppercase',
+                                  fontSize: '0.62rem',
+                                  letterSpacing: 0.5
+                                }}
+                              >
+                                Overdue
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })()
+                    } 
+                  />
                   <DetailInfoRow label="Completed Date" value={formatDate(task.completedDate)} />
+                  <DetailInfoRow label="Created On" value={formatDateTime(task.createdDate)} />
+                  <DetailInfoRow label="Last Updated" value={task.updatedDate ? formatDateTime(task.updatedDate) : '—'} />
                 </Box>
               </CardContent>
             </Card>
-
+ 
             <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
               <CardContent sx={{ p: 3.5 }}>
                 <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
@@ -189,10 +230,10 @@ const TaskDetailsPage = () => {
               </CardContent>
             </Card>
           </Grid>
-
+ 
           {/* Assignee and Project Node info */}
           <Grid item xs={12} md={5}>
-            {/* Assignee Card */}
+            {/* Assignee & Reviewer Card */}
             <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
               <CardContent sx={{ p: 3.5 }}>
                 <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
@@ -216,6 +257,30 @@ const TaskDetailsPage = () => {
                 ) : (
                   <Typography variant="body2" color="text.secondary">
                     Unassigned task
+                  </Typography>
+                )}
+
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 4, mb: 2 }}>
+                  Designated Reviewer
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                {task.reviewer ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ width: 44, height: 44, bgcolor: 'secondary.main', fontWeight: 700 }}>
+                      {task.reviewer.firstName?.[0] || 'R'}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        {task.reviewer.firstName} {task.reviewer.lastName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {task.reviewer.email}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No reviewer assigned
                   </Typography>
                 )}
               </CardContent>

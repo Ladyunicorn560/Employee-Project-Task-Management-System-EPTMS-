@@ -15,6 +15,8 @@ export const API = {
     ME: '/auth/me',
     LOGOUT: '/auth/logout',
     CHANGE_PASSWORD: '/auth/change-password',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
 
   // ─── Employees ─────────────────────────────────────────────────────
@@ -100,6 +102,7 @@ export const API = {
     TASKS: '/dashboard/tasks',
     EMPLOYEES: '/dashboard/employees',
     NOTIFICATIONS: '/dashboard/notifications',
+    OVERDUE: '/dashboard/overdue',
   },
 
   // ─── Reports ───────────────────────────────────────────────────────

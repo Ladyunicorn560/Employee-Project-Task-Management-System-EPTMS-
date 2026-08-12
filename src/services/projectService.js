@@ -143,6 +143,25 @@ class ProjectService {
       throw new BadRequestError('End date cannot be before start date');
     }
 
+    // 6.5 If status is set to Completed, check for open tasks
+    if (updateData.status === 'Completed') {
+      const incompleteCount = await projectRepository.getIncompleteTaskCount(projectId);
+      if (incompleteCount > 0) {
+        throw new BadRequestError(`Cannot complete project '${existingProject.projectName}' (ID: ${projectId}) because it has ${incompleteCount} incomplete task(s).`);
+      }
+    }
+
+    // 6.6 Project lifecycle constraint: only Administrator can archive completed projects
+    if (updateData.status === 'Archived') {
+      if (currentUser.roleName !== ROLES.ADMINISTRATOR) {
+        logger.warn(`Unauthorized archiving attempt: User ${currentUser.email} (Role: ${currentUser.roleName}) tried to archive Project ID ${projectId}`);
+        throw new ForbiddenError('Access denied. Only Administrators are authorized to archive projects.');
+      }
+      if (existingProject.status !== 'Completed') {
+        throw new BadRequestError(`Cannot archive project '${existingProject.projectName}' (ID: ${projectId}) because its current status is '${existingProject.status}'. Only completed projects can be archived.`);
+      }
+    }
+
     // 7. Perform update
     await projectRepository.update(projectId, updateData, currentUser.userId);
     logger.info(`Project updated successfully [ID: ${projectId}, UpdatedBy: ${currentUser.userId}]`);
@@ -152,13 +171,25 @@ class ProjectService {
   }
 
   /**
-   * Soft deletes a project record (Admin only)
+   * Soft deletes a project record (Admin or PM for Draft/Planning projects they manage)
    */
   async deleteProject(projectId, currentUser) {
     // 1. Verify project exists
     const existingProject = await projectRepository.findById(projectId);
     if (!existingProject) {
       throw new NotFoundError(`Project with ID ${projectId} was not found`);
+    }
+
+    // PM Ownership and Status Guard
+    if (currentUser.roleName === ROLES.PROJECT_MANAGER) {
+      if (existingProject.projectManager.id !== currentUser.userId) {
+        logger.warn(`Unauthorized project delete attempt: PM ${currentUser.email} (ID: ${currentUser.userId}) tried to delete Project ID ${projectId} managed by PM ID ${existingProject.projectManager.id}`);
+        throw new ForbiddenError('Access denied. You are only authorized to delete projects that you manage.');
+      }
+      if (existingProject.status !== 'Planning') {
+        logger.warn(`Rejected project delete: PM ${currentUser.email} (ID: ${currentUser.userId}) tried to delete Project ID ${projectId} in active status '${existingProject.status}'`);
+        throw new BadRequestError('Access denied. Project Managers can only delete projects in "Planning" status.');
+      }
     }
 
     // 2. Perform soft delete

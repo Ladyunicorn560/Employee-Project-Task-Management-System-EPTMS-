@@ -398,6 +398,22 @@ class ProjectRepository extends BaseRepository {
 
     await this.query(queryStr, params);
   }
+
+  /**
+   * Gets incomplete active task count assigned under a project
+   */
+  async getIncompleteTaskCount(projectId) {
+    const queryStr = `
+      SELECT COUNT(*) AS TaskCount
+      FROM [dbo].[Task] t
+      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      WHERE m.[ProjectID] = @ProjectID AND t.[Status] <> N'Completed' AND t.[Status] <> N'Cancelled' AND t.[IsDeleted] = 0 AND m.[IsDeleted] = 0;
+    `;
+
+    const params = { ProjectID: { type: mssql.Int, value: projectId } };
+    const result = await this.query(queryStr, params);
+    return result.recordset && result.recordset.length > 0 ? result.recordset[0].TaskCount : 0;
+  }
 }
 
 module.exports = new ProjectRepository();

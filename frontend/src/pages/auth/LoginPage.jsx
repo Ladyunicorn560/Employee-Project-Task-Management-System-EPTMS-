@@ -219,9 +219,20 @@ const LoginPage = () => {
           </Typography>
         </Divider>
 
-        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center' }}>
-          Forgot your password? Contact your system administrator.
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Typography
+            variant="caption"
+            color="primary"
+            sx={{
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              '&:hover': { color: 'primary.dark' }
+            }}
+            onClick={() => navigate(ROUTES.FORGOT_PASSWORD)}
+          >
+            Forgot your password? Reset it here.
+          </Typography>
+        </Box>
       </Box>
     </AuthLayout>
   );

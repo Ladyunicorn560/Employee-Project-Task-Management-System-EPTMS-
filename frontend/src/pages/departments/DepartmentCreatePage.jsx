@@ -42,7 +42,7 @@ const DepartmentCreatePage = () => {
     const fetchPossibleManagers = async () => {
       try {
         const res = await employeeService.getAll({ limit: 100 });
-        const list = res.data?.data || [];
+        const list = res.data || [];
         // Filter: only show Administrators or Project Managers
         const filtered = list.filter(
           (emp) =>

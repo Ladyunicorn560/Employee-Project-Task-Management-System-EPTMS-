@@ -12,9 +12,16 @@ import { MANAGER_ROLES, ADMIN_ROLES, AUTHENTICATED_ROLES } from '../constants/ro
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage'));
 const ChangePasswordPage = lazy(() => import('../pages/auth/ChangePasswordPage'));
 const PlaceholderPage = lazy(() => import('../pages/placeholders/PlaceholderPage'));
+const ConfigurationPage = lazy(() => import('../pages/settings/ConfigurationPage'));
+const ReviewQueuePage = lazy(() => import('../pages/reviews/ReviewQueuePage'));
+const CalendarPage = lazy(() => import('../pages/calendar/CalendarPage'));
+const KanbanPage = lazy(() => import('../pages/kanban/KanbanPage'));
+const AuditLogPage = lazy(() => import('../pages/audit/AuditLogPage'));
 const Error401Page = lazy(() => import('../pages/errors/Error401Page'));
 const Error403Page = lazy(() => import('../pages/errors/Error403Page'));
 const Error404Page = lazy(() => import('../pages/errors/Error404Page'));
@@ -85,6 +92,8 @@ const AppRoutes = () => {
       <Routes>
         {/* ─── Public Routes ──────────────────────────────────── */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
 
         {/* ─── Error Routes (standalone, no layout) ───────────── */}
         <Route path={ROUTES.ERROR_401} element={<Error401Page />} />
@@ -318,11 +327,11 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Reports — Admin, PM, Reviewer */}
+        {/* Reports — Admin, PM, Reviewer, Employee (limited) */}
         <Route
           path={ROUTES.REPORTS}
           element={
-            <ProtectedRoute allowedRoles={[...MANAGER_ROLES, 'Reviewer']}>
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
               <MainLayout><ReportsPage /></MainLayout>
             </ProtectedRoute>
           }
@@ -356,19 +365,13 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Settings — Admin only */}
+        {/* Configuration — Admin only */}
         <Route
-          path={ROUTES.SETTINGS}
+          path={ROUTES.CONFIGURATION}
           element={
             <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <MainLayout>
-                <PlaceholderPage
-                  title="Settings"
-                  description="Configure system-wide settings and preferences."
-                  icon={SettingsRoundedIcon}
-                  phase="Phase 10"
-                  module="Administration"
-                />
+                <ConfigurationPage />
               </MainLayout>
             </ProtectedRoute>
           }
@@ -386,19 +389,49 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Reviews — Reviewer and Admin */}
+        {/* Reviews — Reviewer, Admin, PM */}
         <Route
-          path="/reviews"
+          path={ROUTES.REVIEWS}
           element={
-            <ProtectedRoute allowedRoles={['Reviewer', 'Administrator']}>
+            <ProtectedRoute allowedRoles={['Administrator', 'Project Manager', 'Reviewer']}>
               <MainLayout>
-                <PlaceholderPage
-                  title="Reviews"
-                  description="Manage task reviews and approvals. Coming in Phase 6."
-                  icon={RateReviewRoundedIcon}
-                  phase="Phase 6"
-                  module="Work"
-                />
+                <ReviewQueuePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Calendar — All authenticated */}
+        <Route
+          path={ROUTES.CALENDAR}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout>
+                <CalendarPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Kanban — All authenticated */}
+        <Route
+          path={ROUTES.KANBAN}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout>
+                <KanbanPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Audit Logs — Admin & PM access */}
+        <Route
+          path={ROUTES.AUDIT_LOGS}
+          element={
+            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+              <MainLayout>
+                <AuditLogPage />
               </MainLayout>
             </ProtectedRoute>
           }

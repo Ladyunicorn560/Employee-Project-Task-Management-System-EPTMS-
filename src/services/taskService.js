@@ -2,6 +2,7 @@ const taskRepository = require('../repositories/taskRepository');
 const projectRepository = require('../repositories/projectRepository');
 const projectMemberRepository = require('../repositories/projectMemberRepository');
 const notificationService = require('./notificationService');
+const emailService = require('./emailService');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
@@ -27,8 +28,9 @@ class TaskService {
     }
 
     // 3. If AssignedEmployeeID is specified, validate existence, active status, and project membership
+    let assignee = null;
     if (data.assignedEmployeeId) {
-      const assignee = await projectMemberRepository.getEmployeeDetails(data.assignedEmployeeId);
+      assignee = await projectMemberRepository.getEmployeeDetails(data.assignedEmployeeId);
       if (!assignee) {
         throw new BadRequestError(`Invalid AssignedEmployeeID (${data.assignedEmployeeId}): Employee does not exist`);
       }
@@ -107,6 +109,15 @@ class TaskService {
           },
           transaction
         );
+
+        emailService.sendTaskAssignmentEmail(
+          assignee.Email,
+          `${assignee.FirstName} ${assignee.LastName}`,
+          data.taskTitle,
+          hierarchy.ProjectName,
+          data.dueDate,
+          data.priority || 'Medium'
+        ).catch(err => logger.error('Failed to send task assignment email:', err));
       }
     });
 
@@ -133,6 +144,23 @@ class TaskService {
     }
 
     return taskRepository.findByMilestoneId(milestoneId, queryParams);
+  }
+
+  /**
+   * Fetches paginated & filtered tasks globally
+   */
+  async getAllTasks(queryParams, currentUser) {
+    const { milestoneId, projectId } = queryParams;
+
+    if (currentUser.roleName === ROLES.EMPLOYEE && projectId) {
+      const isAssigned = await projectRepository.isEmployeeAssignedToProject(projectId, currentUser.userId);
+      if (!isAssigned) {
+        logger.warn(`Unauthorized tasks list view attempt: Employee ${currentUser.email} tried to view tasks of unassigned Project ID ${projectId}`);
+        throw new ForbiddenError('Access denied. You can only view tasks for projects you are assigned to.');
+      }
+    }
+
+    return taskRepository.findByMilestoneId(milestoneId || null, queryParams);
   }
 
   /**
@@ -164,6 +192,12 @@ class TaskService {
       throw new NotFoundError(`Task with ID ${taskId} was not found`);
     }
 
+    // Task lifecycle constraint: completed tasks become read-only except for Administrators
+    if (existing.status === 'Completed' && currentUser.roleName !== ROLES.ADMINISTRATOR) {
+      logger.warn(`Rejected task update: User ${currentUser.email} (Role: ${currentUser.roleName}) tried to modify completed Task ID ${taskId}`);
+      throw new ForbiddenError('Access denied. Completed tasks are read-only and can only be modified by an Administrator.');
+    }
+
     if (currentUser.roleName === ROLES.PROJECT_MANAGER && existing.projectManagerId !== currentUser.userId) {
       logger.warn(`Unauthorized task update attempt: PM ${currentUser.email} tried to update Task ID ${taskId}`);
       throw new ForbiddenError('Access denied. You can only update tasks for projects you manage.');
@@ -190,8 +224,9 @@ class TaskService {
       }
     }
 
+    let assignee = null;
     if (updateData.assignedEmployeeId && updateData.assignedEmployeeId !== existing.assignedEmployee?.id) {
-      const assignee = await projectMemberRepository.getEmployeeDetails(updateData.assignedEmployeeId);
+      assignee = await projectMemberRepository.getEmployeeDetails(updateData.assignedEmployeeId);
       if (!assignee) {
         throw new BadRequestError(`Invalid AssignedEmployeeID (${updateData.assignedEmployeeId}): Employee does not exist`);
       }
@@ -263,6 +298,15 @@ class TaskService {
           },
           transaction
         );
+
+        emailService.sendTaskAssignmentEmail(
+          assignee.Email,
+          `${assignee.FirstName} ${assignee.LastName}`,
+          existing.taskTitle,
+          existing.projectName,
+          updateData.dueDate || (existing.dueDate ? new Date(existing.dueDate).toISOString().split('T')[0] : ''),
+          updateData.priority || existing.priority
+        ).catch(err => logger.error('Failed to send task assignment email during update:', err));
       }
     });
 

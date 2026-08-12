@@ -7,6 +7,8 @@
 export const ROUTES = {
   // Public
   LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
 
   // Core
   ROOT: '/',
@@ -28,8 +30,12 @@ export const ROUTES = {
 
   // User
   PROFILE: '/profile',
-  SETTINGS: '/settings',
+  CONFIGURATION: '/configuration',
   CHANGE_PASSWORD: '/change-password',
+  KANBAN: '/kanban',
+  CALENDAR: '/calendar',
+  AUDIT_LOGS: '/audit-logs',
+  REVIEWS: '/reviews',
 
   // Errors
   ERROR_401: '/401',

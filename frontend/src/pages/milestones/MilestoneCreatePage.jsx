@@ -68,7 +68,7 @@ const MilestoneCreatePage = () => {
       // Navigate back to project details milestones tab (index 2)
       navigate(`${ROUTES.PROJECTS}/${projectId}`);
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Failed to create milestone.';
+      const msg = err?.response?.data?.errors?.[0]?.message || err?.response?.data?.message || 'Failed to create milestone.';
       toast.error(msg);
     }
   };
@@ -118,10 +118,12 @@ const MilestoneCreatePage = () => {
                   defaultValue="Planning"
                   {...register('status', { required: 'Status is required' })}
                 >
+                  <MenuItem value="Not Started">Not Started</MenuItem>
                   <MenuItem value="Planning">Planning</MenuItem>
                   <MenuItem value="In Progress">In Progress</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
                   <MenuItem value="On Hold">On Hold</MenuItem>
+                  <MenuItem value="Completed">Completed</MenuItem>
+                  <MenuItem value="Cancelled">Cancelled</MenuItem>
                 </Select>
                 {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
               </FormControl>

@@ -77,6 +77,19 @@ class DashboardService {
     logger.info(`Notification Analytics requested by User ID: ${currentUser.userId} [Role: ${currentUser.roleName}]`);
     return dashboardRepository.getNotificationAnalytics(filters);
   }
+
+  /**
+   * Unified Overdue Items (overdue tasks + pending reviews > 24 hrs)
+   */
+  async getOverdueItems(queryParams, currentUser) {
+    const filters = {
+      roleName: currentUser.roleName,
+      userId: currentUser.userId
+    };
+
+    logger.info(`Overdue Items requested by User ID: ${currentUser.userId} [Role: ${currentUser.roleName}]`);
+    return dashboardRepository.getOverdueItems(filters);
+  }
 }
 
 module.exports = new DashboardService();

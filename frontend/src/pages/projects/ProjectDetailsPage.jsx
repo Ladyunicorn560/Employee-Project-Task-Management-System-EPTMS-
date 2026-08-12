@@ -22,10 +22,11 @@ import useAuth from '../../hooks/useAuth';
 import projectService from '../../services/projectService';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 
 import ProjectMembersTab from './components/ProjectMembersTab';
 import ProjectMilestonesTab from './components/ProjectMilestonesTab';
+import ProjectTasksTab from './components/ProjectTasksTab';
 
 const DetailInfoRow = ({ label, value }) => (
   <Box sx={{ display: 'flex', py: 1.5, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -161,7 +162,13 @@ const ProjectDetailsPage = () => {
                   <DetailInfoRow label="Description" value={project.description || 'No description provided.'} />
                   <DetailInfoRow
                     label="Timeline"
-                    value={<DateRangeDisplay startDate={project.startDate} endDate={project.endDate} />}
+                    value={
+                      <DateRangeDisplay 
+                        startDate={project.startDate} 
+                        endDate={project.endDate} 
+                        isOverdue={project.status !== 'Completed' && project.endDate && new Date(project.endDate) < new Date()}
+                      />
+                    }
                   />
                   <DetailInfoRow label="Status" value={<StatusChip status={project.status} />} />
                 </Box>
@@ -205,8 +212,8 @@ const ProjectDetailsPage = () => {
                 </Typography>
                 <Divider />
                 <Box sx={{ mt: 1 }}>
-                  <DetailInfoRow label="Created Date" value={formatDate(project.createdDate)} />
-                  <DetailInfoRow label="Last Updated" value={project.updatedDate ? formatDate(project.updatedDate) : 'Never updated'} />
+                  <DetailInfoRow label="Created Date" value={formatDateTime(project.createdDate)} />
+                  <DetailInfoRow label="Last Updated" value={project.updatedDate ? formatDateTime(project.updatedDate) : 'Never updated'} />
                 </Box>
               </CardContent>
             </Card>
@@ -233,11 +240,7 @@ const ProjectDetailsPage = () => {
       {tabValue === 3 && (
         <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
-            <EmptyState
-              title="Tasks Pipeline Placeholder"
-              description="Task workflows, checklists, and items tracking will be loaded in Phase 5 of Work modules."
-              icon={TaskAltRoundedIcon}
-            />
+            <ProjectTasksTab project={project} />
           </CardContent>
         </Card>
       )}
