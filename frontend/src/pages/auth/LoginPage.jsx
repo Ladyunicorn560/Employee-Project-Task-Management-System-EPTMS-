@@ -233,10 +233,15 @@ const LoginPage = () => {
               <AppButton
                 size="small"
                 variant="outlined"
-                onClick={() => {
-                  setValue('email', 'admin@eptms-demo.com');
-                  setValue('password', 'Admin@123456');
-                  handleSubmit(onSubmit)();
+                onClick={async () => {
+                  setLoginError('');
+                  try {
+                    await login('admin@eptms-demo.com', 'Admin@123456', false);
+                    toast.success('Welcome back! You have signed in as Admin.', { autoClose: 2000 });
+                    navigate(ROUTES.DASHBOARD, { replace: true });
+                  } catch {
+                    setLoginError('Unable to sign in. Please try again later.');
+                  }
                 }}
               >
                 Admin
@@ -244,10 +249,15 @@ const LoginPage = () => {
               <AppButton
                 size="small"
                 variant="outlined"
-                onClick={() => {
-                  setValue('email', 'manager@eptms-demo.com');
-                  setValue('password', 'Manager@123456');
-                  handleSubmit(onSubmit)();
+                onClick={async () => {
+                  setLoginError('');
+                  try {
+                    await login('manager@eptms-demo.com', 'Manager@123456', false);
+                    toast.success('Welcome back! You have signed in as Manager.', { autoClose: 2000 });
+                    navigate(ROUTES.DASHBOARD, { replace: true });
+                  } catch {
+                    setLoginError('Unable to sign in. Please try again later.');
+                  }
                 }}
               >
                 Manager
@@ -255,10 +265,15 @@ const LoginPage = () => {
               <AppButton
                 size="small"
                 variant="outlined"
-                onClick={() => {
-                  setValue('email', 'employee@eptms-demo.com');
-                  setValue('password', 'Employee@123456');
-                  handleSubmit(onSubmit)();
+                onClick={async () => {
+                  setLoginError('');
+                  try {
+                    await login('employee@eptms-demo.com', 'Employee@123456', false);
+                    toast.success('Welcome back! You have signed in as Employee.', { autoClose: 2000 });
+                    navigate(ROUTES.DASHBOARD, { replace: true });
+                  } catch {
+                    setLoginError('Unable to sign in. Please try again later.');
+                  }
                 }}
               >
                 Employee

@@ -170,6 +170,9 @@ export const AuthProvider = ({ children }) => {
       setUserState(normalized);
       return normalized;
     } catch {
+      if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
+        return user;
+      }
       // If refresh fails (e.g. token expired), force logout
       await logout();
     }
