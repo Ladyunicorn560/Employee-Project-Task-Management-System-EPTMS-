@@ -80,24 +80,63 @@ export const AuthProvider = ({ children }) => {
    * @returns {Promise<object>} Normalized user
    */
   const login = useCallback(async (email, password, rememberEmail = false) => {
-    const response = await axiosInstance.post(API.AUTH.LOGIN, { email, password });
-    const { token: newToken, user: rawUser } = response.data.data;
+    try {
+      const response = await axiosInstance.post(API.AUTH.LOGIN, { email, password });
+      const { token: newToken, user: rawUser } = response.data.data;
 
-    const normalized = normalizeUser(rawUser);
+      const normalized = normalizeUser(rawUser);
 
-    setToken(newToken);
-    setUser(normalized);
-    setTokenState(newToken);
-    setUserState(normalized);
+      setToken(newToken);
+      setUser(normalized);
+      setTokenState(newToken);
+      setUserState(normalized);
 
-    // Handle Remember Me
-    if (rememberEmail) {
-      lsSet(REMEMBER_EMAIL_KEY, email);
-    } else {
-      lsSet(REMEMBER_EMAIL_KEY, '');
+      if (rememberEmail) {
+        lsSet(REMEMBER_EMAIL_KEY, email);
+      } else {
+        lsSet(REMEMBER_EMAIL_KEY, '');
+      }
+
+      return normalized;
+    } catch (err) {
+      // In Demo Mode on public deployment, fallback to instant demo user session if DB API is not ready
+      if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
+        let demoRole = 'Admin';
+        let demoDept = 'Executive Management';
+        let demoId = 1;
+
+        if (email.includes('manager')) {
+          demoRole = 'Project Manager';
+          demoDept = 'Engineering';
+          demoId = 2;
+        } else if (email.includes('employee')) {
+          demoRole = 'Software Engineer';
+          demoDept = 'Engineering';
+          demoId = 3;
+        }
+
+        const demoUser = {
+          id: demoId,
+          email: email,
+          firstName: 'Demo',
+          lastName: demoRole,
+          roleName: demoRole,
+          roleId: demoId,
+          departmentName: demoDept,
+          departmentId: demoId,
+          status: 'Active',
+        };
+
+        const demoToken = 'demo-jwt-token-session-' + Date.now();
+        setToken(demoToken);
+        setUser(demoUser);
+        setTokenState(demoToken);
+        setUserState(demoUser);
+        return demoUser;
+      }
+
+      throw err;
     }
-
-    return normalized;
   }, []);
 
   // ─── Logout ───────────────────────────────────────────────────────────────

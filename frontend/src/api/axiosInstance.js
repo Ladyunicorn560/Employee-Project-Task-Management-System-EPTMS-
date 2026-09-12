@@ -8,7 +8,7 @@ import { getToken, clearAuth } from '../utils/tokenUtils';
  * - Handles 401 responses by clearing auth and redirecting to login
  */
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

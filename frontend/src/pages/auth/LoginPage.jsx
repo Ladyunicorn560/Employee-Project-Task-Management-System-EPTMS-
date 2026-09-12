@@ -227,7 +227,7 @@ const LoginPage = () => {
             }}
           >
             <Typography variant="caption" fontWeight={600} color="text.secondary" display="block" mb={1} textAlign="center">
-              💡 Quick Demo Roles (Click to auto-fill credentials):
+              Quick Demo Roles (Click to sign in):
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
               <AppButton
@@ -236,9 +236,10 @@ const LoginPage = () => {
                 onClick={() => {
                   setValue('email', 'admin@eptms-demo.com');
                   setValue('password', 'Admin@123456');
+                  handleSubmit(onSubmit)();
                 }}
               >
-                👑 Admin
+                Admin
               </AppButton>
               <AppButton
                 size="small"
@@ -246,9 +247,10 @@ const LoginPage = () => {
                 onClick={() => {
                   setValue('email', 'manager@eptms-demo.com');
                   setValue('password', 'Manager@123456');
+                  handleSubmit(onSubmit)();
                 }}
               >
-                💼 Manager
+                Manager
               </AppButton>
               <AppButton
                 size="small"
@@ -256,9 +258,10 @@ const LoginPage = () => {
                 onClick={() => {
                   setValue('email', 'employee@eptms-demo.com');
                   setValue('password', 'Employee@123456');
+                  handleSubmit(onSubmit)();
                 }}
               >
-                👤 Employee
+                Employee
               </AppButton>
             </Box>
           </Box>
