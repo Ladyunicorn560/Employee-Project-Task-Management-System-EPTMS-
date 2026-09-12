@@ -9,6 +9,18 @@ Production-ready backend API service for the **Employee Project & Task Managemen
 
 ---
 
+## 🌐 Live Demo & Deployment Links
+
+| Component | Service | Live URL |
+| :--- | :--- | :--- |
+| **Frontend Web App** | Render Static Site | [https://eptms-frontend-app.onrender.com](https://eptms-frontend-app.onrender.com) |
+| **Backend API Service** | Render Web Service | [https://eptms-backend-api.onrender.com](https://eptms-backend-api.onrender.com) |
+| **Swagger API Docs** | Live OpenAPI UI | [https://eptms-backend-api.onrender.com/api-docs](https://eptms-backend-api.onrender.com/api-docs) |
+
+> **Quick Demo Access**: Click **Admin**, **Manager**, or **Employee** buttons on the live login page to explore all features instantly in Demo Mode.
+
+---
+
 ## 📖 Table of Contents
 1. [Project Overview](#project-overview)
 2. [Architecture Diagram](#architecture-diagram)
