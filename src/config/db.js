@@ -1,38 +1,44 @@
 const env = require('./env');
 const logger = require('../utils/logger');
 
-// Load mssql module dynamically based on authentication type
+// Load mssql module dynamically based on driver availability
 let mssql;
-if (env.DB_USER && env.DB_PASSWORD) {
-  mssql = require('mssql');
+let useNativeDriver = false;
+
+if (!env.DB_USER || !env.DB_PASSWORD) {
+  try {
+    mssql = require('mssql/msnodesqlv8');
+    useNativeDriver = true;
+  } catch (err) {
+    mssql = require('mssql');
+    useNativeDriver = false;
+  }
 } else {
-  // Use native Windows Authentication driver
-  mssql = require('mssql/msnodesqlv8');
+  mssql = require('mssql');
 }
 
 let pool = null;
 
 function getDbConfig() {
-  if (env.DB_USER && env.DB_PASSWORD) {
+  if (useNativeDriver) {
     return {
-      server: env.DB_SERVER,
-      database: env.DB_NAME,
-      user: env.DB_USER,
-      password: env.DB_PASSWORD,
-      options: {
-        encrypt: env.DB_ENCRYPT,
-        trustServerCertificate: env.DB_TRUST_SERVER_CERTIFICATE,
-        enableArithAbort: true
-      },
+      connectionString: `Driver={ODBC Driver 18 for SQL Server};Server=${env.DB_SERVER};Database=${env.DB_NAME};Trusted_Connection=yes;TrustServerCertificate=${env.DB_TRUST_SERVER_CERTIFICATE ? 'yes' : 'no'};`,
       pool: { max: 20, min: 5, idleTimeoutMillis: 30000 },
       connectionTimeout: 15000,
       requestTimeout: 30000
     };
   }
 
-  // Windows Authentication Configuration via msnodesqlv8 / ODBC Driver
   return {
-    connectionString: `Driver={ODBC Driver 18 for SQL Server};Server=${env.DB_SERVER};Database=${env.DB_NAME};Trusted_Connection=yes;TrustServerCertificate=${env.DB_TRUST_SERVER_CERTIFICATE ? 'yes' : 'no'};`,
+    server: env.DB_SERVER || 'localhost',
+    database: env.DB_NAME || 'EPTMS_DB',
+    user: env.DB_USER || '',
+    password: env.DB_PASSWORD || '',
+    options: {
+      encrypt: env.DB_ENCRYPT,
+      trustServerCertificate: env.DB_TRUST_SERVER_CERTIFICATE,
+      enableArithAbort: true
+    },
     pool: { max: 20, min: 5, idleTimeoutMillis: 30000 },
     connectionTimeout: 15000,
     requestTimeout: 30000

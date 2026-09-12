@@ -8,11 +8,13 @@ let server;
 
 async function startServer() {
   try {
-    // 1. Initialize SQL Server Connection Pool
-    await initializeDb();
-
-    // Start background reminder checks
-    reminderScheduler.start();
+    // 1. Initialize SQL Server Connection Pool (Non-blocking retry)
+    try {
+      await initializeDb();
+      reminderScheduler.start();
+    } catch (dbErr) {
+      logger.warn('⚠️ Initial DB connection attempt failed (Server will still listen for requests):', dbErr.message);
+    }
 
     // 2. Start Express HTTP Server
     server = app.listen(env.PORT, () => {
@@ -30,7 +32,7 @@ async function startServer() {
     server.requestTimeout = 120000; // 2 minutes
 
   } catch (err) {
-    logger.error('💥 Server startup failed due to database or initialization error:', err);
+    logger.error('💥 Server startup failed:', err);
     process.exit(1);
   }
 }
