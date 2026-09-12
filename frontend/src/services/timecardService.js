@@ -1,15 +1,31 @@
 import axiosInstance from '../api/axiosInstance';
 import { API } from '../api/endpoints';
 
+const EMPTY_PAGINATED = { success: true, data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 1 } };
+
 const timecardService = {
   getAll: async (params) => {
-    const response = await axiosInstance.get(API.TIMECARDS.BASE, { params });
-    return response.data;
+    try {
+      const response = await axiosInstance.get(API.TIMECARDS.BASE, { params });
+      return response.data;
+    } catch (err) {
+      if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
+        return EMPTY_PAGINATED;
+      }
+      throw err;
+    }
   },
 
   getById: async (id) => {
-    const response = await axiosInstance.get(API.TIMECARDS.BY_ID(id));
-    return response.data.data;
+    try {
+      const response = await axiosInstance.get(API.TIMECARDS.BY_ID(id));
+      return response.data.data;
+    } catch (err) {
+      if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
+        return null;
+      }
+      throw err;
+    }
   },
 
   submit: async (payload) => {
