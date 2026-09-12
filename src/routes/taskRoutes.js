@@ -31,7 +31,7 @@ milestoneTasksRouter.get(
 milestoneTasksRouter.post(
   '/',
   authenticate,
-  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER),
+  authorize(ROLES.ADMINISTRATOR, ROLES.PROJECT_MANAGER, ROLES.EMPLOYEE),
   validate(createTaskSchema),
   taskController.createTask
 );

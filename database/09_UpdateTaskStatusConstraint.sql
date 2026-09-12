@@ -32,6 +32,7 @@ CHECK ([Status] IN (
     N'Not Started',
     N'Assigned',
     N'In Progress',
+    N'Waiting for Information',
     N'Blocked',
     N'Ready for Review',
     N'Under Review',

@@ -9,6 +9,8 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
 
+import { useNavigate } from 'react-router-dom';
+
 import useAuth from '../../hooks/useAuth';
 import useDashboard from '../../hooks/useDashboard';
 import StatCard from '../../components/common/StatCard';
@@ -20,6 +22,7 @@ import TaskAnalyticsCard from './components/TaskAnalyticsCard';
 import EmployeeAnalyticsCard from './components/EmployeeAnalyticsCard';
 import NotificationAnalyticsCard from './components/NotificationAnalyticsCard';
 import OverdueItemsCard from './components/OverdueItemsCard';
+import TimecardAnalyticsCard from './components/TimecardAnalyticsCard';
 import { ROLES } from '../../constants/roles';
 
 /**
@@ -28,6 +31,7 @@ import { ROLES } from '../../constants/roles';
  * status details, filters, and KPI summary stats cards.
  */
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   // Filters State
@@ -57,7 +61,8 @@ const DashboardPage = () => {
       icon: TaskAltRoundedIcon,
       color: '#1976D2',
       subtext: `${overview?.tasks?.inProgress ?? 0} in progress`,
-      tooltip: 'Total tasks assigned to you',
+      tooltip: 'Total tasks assigned to you - Click to view',
+      onClick: () => navigate('/tasks'),
     },
     {
       label: 'My Projects',
@@ -65,7 +70,8 @@ const DashboardPage = () => {
       icon: FolderRoundedIcon,
       color: '#26A69A',
       subtext: `${overview?.projects?.active ?? 0} active projects`,
-      tooltip: 'Total projects you are assigned to as a member',
+      tooltip: 'Total projects you are assigned to - Click to view',
+      onClick: () => navigate('/projects'),
     },
     {
       label: 'My Task Completion %',
@@ -73,7 +79,8 @@ const DashboardPage = () => {
       icon: TaskAltRoundedIcon,
       color: '#2E7D32',
       subtext: `${overview?.tasks?.completed ?? 0} completed`,
-      tooltip: 'Your task completion rate percentage',
+      tooltip: 'Your task completion rate percentage - Click to view tasks',
+      onClick: () => navigate('/tasks'),
     },
     {
       label: 'My Overdue Tasks',
@@ -81,7 +88,45 @@ const DashboardPage = () => {
       icon: WarningAmberRoundedIcon,
       color: '#D32F2F',
       subtext: 'Requires attention',
-      tooltip: 'Your assigned tasks past their due date',
+      tooltip: 'Your assigned tasks past due - Click to view',
+      onClick: () => navigate('/tasks?filter=overdue'),
+    },
+  ] : isPM ? [
+    {
+      label: 'My Managed Projects',
+      value: overview?.projects?.total ?? '—',
+      icon: FolderRoundedIcon,
+      color: '#26A69A',
+      subtext: `${overview?.projects?.active ?? 0} active projects`,
+      tooltip: 'Total projects managed by you - Click to view',
+      onClick: () => navigate('/projects'),
+    },
+    {
+      label: 'Managed Tasks',
+      value: overview?.tasks?.total ?? '—',
+      icon: TaskAltRoundedIcon,
+      color: '#1976D2',
+      subtext: `${overview?.tasks?.inProgress ?? 0} in progress`,
+      tooltip: 'Total tasks under your management - Click to view',
+      onClick: () => navigate('/tasks'),
+    },
+    {
+      label: 'Task Completion %',
+      value: overview?.tasks ? `${overview.tasks.completionRate}%` : '—',
+      icon: TaskAltRoundedIcon,
+      color: '#2E7D32',
+      subtext: `${overview?.tasks?.completed ?? 0} of ${overview?.tasks?.total ?? 0} tasks completed`,
+      tooltip: 'Overall completion rate for your managed projects',
+      onClick: () => navigate('/tasks'),
+    },
+    {
+      label: 'Overdue Tasks',
+      value: overview?.tasks?.overdue ?? '—',
+      icon: WarningAmberRoundedIcon,
+      color: '#D32F2F',
+      subtext: 'Requires attention',
+      tooltip: 'Tasks past due - Click to view',
+      onClick: () => navigate('/tasks?filter=overdue'),
     },
   ] : isReviewer ? [
     {
@@ -90,7 +135,8 @@ const DashboardPage = () => {
       icon: TaskAltRoundedIcon,
       color: '#1976D2',
       subtext: `${overview?.tasks?.total ?? 0} total assigned`,
-      tooltip: 'Tasks pending review under your supervision',
+      tooltip: 'Tasks pending review - Click to view',
+      onClick: () => navigate('/tasks'),
     },
     {
       label: 'My Scoped Projects',
@@ -98,7 +144,8 @@ const DashboardPage = () => {
       icon: FolderRoundedIcon,
       color: '#26A69A',
       subtext: `${overview?.projects?.total ?? 0} total projects`,
-      tooltip: 'Active projects where you are reviewer or member',
+      tooltip: 'Active projects under your review scope - Click to view',
+      onClick: () => navigate('/projects'),
     },
     {
       label: 'My Task Completion %',
@@ -106,7 +153,8 @@ const DashboardPage = () => {
       icon: TaskAltRoundedIcon,
       color: '#2E7D32',
       subtext: `${overview?.tasks?.completed ?? 0} tasks completed`,
-      tooltip: 'Completion rate percentage of tasks under your review scope',
+      tooltip: 'Completion rate percentage - Click to view tasks',
+      onClick: () => navigate('/tasks'),
     },
     {
       label: 'My Overdue Tasks',
@@ -114,7 +162,8 @@ const DashboardPage = () => {
       icon: WarningAmberRoundedIcon,
       color: '#D32F2F',
       subtext: 'Requires attention',
-      tooltip: 'Tasks past their due date in your review scope',
+      tooltip: 'Tasks past due - Click to view',
+      onClick: () => navigate('/tasks?filter=overdue'),
     },
   ] : [
     {
@@ -123,7 +172,8 @@ const DashboardPage = () => {
       icon: PeopleAltRoundedIcon,
       color: '#1976D2',
       subtext: `${overview?.employees?.active ?? 0} active`,
-      tooltip: 'Total registered employees in EPTMS',
+      tooltip: 'Total registered employees - Click to view',
+      onClick: () => navigate('/employees'),
     },
     {
       label: 'Active Projects',
@@ -131,7 +181,8 @@ const DashboardPage = () => {
       icon: FolderRoundedIcon,
       color: '#26A69A',
       subtext: `${overview?.projects?.total ?? 0} total projects`,
-      tooltip: 'Projects currently in Active status',
+      tooltip: 'Projects currently active - Click to view',
+      onClick: () => navigate('/projects'),
     },
     {
       label: 'Task Completion %',
@@ -139,7 +190,8 @@ const DashboardPage = () => {
       icon: TaskAltRoundedIcon,
       color: '#2E7D32',
       subtext: `${overview?.tasks?.completed ?? 0} of ${overview?.tasks?.total ?? 0} tasks completed`,
-      tooltip: 'Overall task completion percentage rate',
+      tooltip: 'Overall task completion rate - Click to view tasks',
+      onClick: () => navigate('/tasks'),
     },
     {
       label: 'Overdue Tasks',
@@ -147,7 +199,8 @@ const DashboardPage = () => {
       icon: WarningAmberRoundedIcon,
       color: '#D32F2F',
       subtext: 'Requires attention',
-      tooltip: 'Tasks past their due date that are not completed',
+      tooltip: 'Tasks past due date - Click to view',
+      onClick: () => navigate('/tasks?filter=overdue'),
     },
   ];
 
@@ -166,6 +219,9 @@ const DashboardPage = () => {
             <Chip label={user?.roleName || '—'} size="small" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
             {user?.departmentName && (
               <Chip label={user.departmentName} size="small" variant="outlined" sx={{ color: 'text.secondary', borderColor: 'divider' }} />
+            )}
+            {(user?.manager?.name || user?.manager?.firstName) && (
+              <Chip label={`Manager: ${user.manager.name || `${user.manager.firstName || ''} ${user.manager.lastName || ''}`.trim()}`} size="small" color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />
             )}
           </Box>
         </Box>
@@ -198,6 +254,11 @@ const DashboardPage = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Timecards & Financial Billing Card */}
+      <Box sx={{ mb: 3.5 }}>
+        <TimecardAnalyticsCard timecardData={overview?.timecards} />
+      </Box>
 
       {/* Charts Grid */}
       <Grid container spacing={3} sx={{ mb: 3.5 }}>

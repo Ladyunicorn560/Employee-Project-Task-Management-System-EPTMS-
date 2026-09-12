@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import {
   Box, Grid, TextField, MenuItem, Select, FormControl, InputLabel, FormHelperText, Alert,
 } from '@mui/material';
@@ -46,6 +46,7 @@ const TaskEditPage = () => {
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
     mode: 'onBlur',
@@ -162,20 +163,22 @@ const TaskEditPage = () => {
       let payload = {};
 
       if (isEmployee) {
-        // Employees can ONLY edit status and logged hours
+        // Employees can ONLY edit status, logged hours, and mandatory status comment
         payload = {
           status: data.status,
           actualHours: parseFloat(data.actualHours || 0),
+          comment: data.comment || undefined,
         };
       } else {
         // PM / Admin full parameters
         payload = {
           taskTitle: data.title.trim(),
-          description: data.description.trim() || null,
+          description: data.description ? data.description.trim() : null,
           assignedEmployeeId: data.assignedTo ? parseInt(data.assignedTo, 10) : null,
           reviewerId: data.reviewerId ? parseInt(data.reviewerId, 10) : null,
           priority: data.priority,
           status: data.status,
+          comment: data.comment || undefined,
           dueDate: data.dueDate,
           estimatedHours: parseFloat(data.estimatedHours || 0),
           actualHours: parseFloat(data.actualHours || 0),
@@ -235,26 +238,28 @@ const TaskEditPage = () => {
                 fullWidth
                 label="Task Title"
                 disabled={isEmployee}
-                error={!!errors.title}
-                helperText={errors.title?.message}
-                {...register('title', { required: 'Task title is required' })}
+                error={!isEmployee && !!errors.title}
+                helperText={!isEmployee ? errors.title?.message : undefined}
+                {...register('title', { required: !isEmployee ? 'Task title is required' : false })}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth error={!!errors.priority} disabled={isEmployee}>
-                <InputLabel id="task-edit-priority">Priority</InputLabel>
-                <Select
-                  labelId="task-edit-priority"
-                  label="Priority"
-                  defaultValue="Low"
-                  {...register('priority', { required: 'Priority is required' })}
-                >
-                  <MenuItem value="High">High</MenuItem>
-                  <MenuItem value="Medium">Medium</MenuItem>
-                  <MenuItem value="Low">Low</MenuItem>
-                </Select>
-                {errors.priority && <FormHelperText>{errors.priority.message}</FormHelperText>}
-              </FormControl>
+              <Controller
+                name="priority"
+                control={control}
+                rules={{ required: !isEmployee ? 'Priority is required' : false }}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!isEmployee && !!errors.priority} disabled={isEmployee}>
+                    <InputLabel id="task-edit-priority">Priority</InputLabel>
+                    <Select {...field} labelId="task-edit-priority" label="Priority">
+                      <MenuItem value="High">High</MenuItem>
+                      <MenuItem value="Medium">Medium</MenuItem>
+                      <MenuItem value="Low">Low</MenuItem>
+                    </Select>
+                    {!isEmployee && errors.priority && <FormHelperText>{errors.priority.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -274,42 +279,46 @@ const TaskEditPage = () => {
         <FormSection title="Resource & Work Management" subtitle="Update assignee, timelines, and logged actual hours">
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.assignedTo} disabled={isEmployee}>
-                <InputLabel id="task-edit-assignee">Assigned Employee</InputLabel>
-                <Select
-                  labelId="task-edit-assignee"
-                  label="Assigned Employee"
-                  defaultValue=""
-                  {...register('assignedTo', { required: 'Assigned employee is required' })}
-                >
-                  <MenuItem value="">Select Employee</MenuItem>
-                  {projectAssignees.map((emp) => (
-                    <MenuItem key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.assignedTo && <FormHelperText>{errors.assignedTo.message}</FormHelperText>}
-              </FormControl>
+              <Controller
+                name="assignedTo"
+                control={control}
+                rules={{ required: !isEmployee ? 'Assigned employee is required' : false }}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!isEmployee && !!errors.assignedTo} disabled={isEmployee}>
+                    <InputLabel id="task-edit-assignee">Assigned Employee</InputLabel>
+                    <Select {...field} labelId="task-edit-assignee" label="Assigned Employee">
+                      <MenuItem value="">Select Employee</MenuItem>
+                      {projectAssignees.map((emp) => (
+                        <MenuItem key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.roleInProject})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!isEmployee && errors.assignedTo && <FormHelperText>{errors.assignedTo.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!errors.reviewerId} disabled={isEmployee}>
-                <InputLabel id="task-edit-reviewer">Assigned Reviewer</InputLabel>
-                <Select
-                  labelId="task-edit-reviewer"
-                  label="Assigned Reviewer"
-                  defaultValue=""
-                  {...register('reviewerId', { required: 'Assigned reviewer is required' })}
-                >
-                  <MenuItem value="">Select Reviewer</MenuItem>
-                  {projectAssignees.map((emp) => (
-                    <MenuItem key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} ({emp.roleInProject})
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.reviewerId && <FormHelperText>{errors.reviewerId.message}</FormHelperText>}
-              </FormControl>
+              <Controller
+                name="reviewerId"
+                control={control}
+                rules={{ required: !isEmployee ? 'Assigned reviewer is required' : false }}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!isEmployee && !!errors.reviewerId} disabled={isEmployee}>
+                    <InputLabel id="task-edit-reviewer">Assigned Reviewer</InputLabel>
+                    <Select {...field} labelId="task-edit-reviewer" label="Assigned Reviewer">
+                      <MenuItem value="">Select Reviewer</MenuItem>
+                      {projectAssignees.map((emp) => (
+                        <MenuItem key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.roleInProject})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {!isEmployee && errors.reviewerId && <FormHelperText>{errors.reviewerId.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -319,33 +328,74 @@ const TaskEditPage = () => {
                 label="Due Date"
                 disabled={isEmployee}
                 slotProps={{ inputLabel: { shrink: true } }}
-                error={!!errors.dueDate}
-                helperText={errors.dueDate?.message}
-                {...register('dueDate', { required: 'Due date is required' })}
+                error={!isEmployee && !!errors.dueDate}
+                helperText={!isEmployee ? errors.dueDate?.message : undefined}
+                {...register('dueDate', { required: !isEmployee ? 'Due date is required' : false })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth error={!!errors.status}>
-                <InputLabel id="task-edit-status-label">Status</InputLabel>
-                <Select
-                  labelId="task-edit-status-label"
-                  label="Status"
-                  defaultValue="Not Started"
-                  {...register('status', { required: 'Status is required' })}
-                >
-                  <MenuItem value="Not Started">Not Started</MenuItem>
-                  <MenuItem value="Assigned">Assigned</MenuItem>
-                  <MenuItem value="In Progress">In Progress</MenuItem>
-                  <MenuItem value="Blocked">Blocked</MenuItem>
-                  <MenuItem value="Ready for Review">Ready for Review</MenuItem>
-                  <MenuItem value="Under Review">Under Review</MenuItem>
-                  <MenuItem value="Changes Required">Changes Required</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
-                </Select>
-                {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
-              </FormControl>
+              {(() => {
+                const isAdmin = user?.roleName === ROLES.ADMINISTRATOR;
+                const isPmOwner = user?.roleName === ROLES.PROJECT_MANAGER && project?.projectManager?.id === user?.id;
+                const isReviewerForTask = isAdmin || isPmOwner || task?.reviewerId === user?.id || task?.reviewer?.id === user?.id;
+                const isCurrentlyUnderReview = task?.status === 'Under Review';
+
+                return (
+                  <Controller
+                    name="status"
+                    control={control}
+                    rules={{ required: 'Status is required' }}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.status} disabled={isCurrentlyUnderReview && !isReviewerForTask}>
+                        <InputLabel id="task-edit-status-label">Status</InputLabel>
+                        <Select {...field} labelId="task-edit-status-label" label="Status">
+                          <MenuItem value="Not Started">Not Started</MenuItem>
+                          <MenuItem value="Assigned">Assigned</MenuItem>
+                          <MenuItem value="In Progress">In Progress</MenuItem>
+                          <MenuItem value="Waiting for Information">Waiting for Information</MenuItem>
+                          <MenuItem value="Blocked">Blocked</MenuItem>
+                          <MenuItem value="Ready for Review">Ready for Review</MenuItem>
+                          <MenuItem value="Under Review" disabled={!isReviewerForTask}>
+                            {!isReviewerForTask ? 'Under Review (Reviewer Only)' : 'Under Review'}
+                          </MenuItem>
+                          <MenuItem value="Changes Required">Changes Required</MenuItem>
+                          <MenuItem value="Completed">Completed</MenuItem>
+                          <MenuItem value="Cancelled" disabled={isEmployee}>
+                            {isEmployee ? 'Cancelled (Manager Approval Required)' : 'Cancelled'}
+                          </MenuItem>
+                        </Select>
+                        {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
+                        {isCurrentlyUnderReview && !isReviewerForTask && (
+                          <FormHelperText sx={{ color: 'warning.main' }}>
+                            Task is currently Under Review. Status can only be updated by the assigned Reviewer.
+                          </FormHelperText>
+                        )}
+                      </FormControl>
+                    )}
+                  />
+                );
+              })()}
             </Grid>
+
+            {statusVal && statusVal !== task?.status && (
+              <Grid item xs={12}>
+                <TextField
+                  id="task-edit-status-comment"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Comment (Required for Status Change)"
+                  placeholder="Explain the reason for updating the task status..."
+                  error={!!errors.comment}
+                  helperText={errors.comment?.message || 'Status changes require a tracked comment.'}
+                  {...register('comment', {
+                    validate: (val) =>
+                      statusVal === task?.status || (val && val.trim().length > 0) || 'Comment is mandatory when changing status.',
+                  })}
+                />
+              </Grid>
+            )}
+
             {statusVal === 'Completed' && (
               <Grid item xs={12} sm={6}>
                 <TextField

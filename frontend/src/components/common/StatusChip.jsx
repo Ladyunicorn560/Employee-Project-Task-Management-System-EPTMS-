@@ -25,7 +25,7 @@ const StatusChip = ({ status = '', size = 'small', sx = {} }) => {
   } else if (['in progress', 'ongoing', 'planning', 'started', 'under review', 'ready for review'].includes(lower)) {
     color = 'primary';
     variant = 'outlined';
-  } else if (['on hold', 'pending', 'waiting', 'warning'].includes(lower)) {
+  } else if (['on hold', 'pending', 'waiting', 'waiting for information', 'warning'].includes(lower)) {
     color = 'warning';
     variant = 'outlined';
   }

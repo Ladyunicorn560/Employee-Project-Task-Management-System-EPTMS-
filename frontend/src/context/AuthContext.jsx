@@ -46,6 +46,7 @@ const normalizeUser = (rawUser) => {
     roleId: rawUser.role?.id || rawUser.roleId || null,
     departmentName: rawUser.department?.name || rawUser.departmentName || '',
     departmentId: rawUser.department?.id || rawUser.departmentId || null,
+    manager: rawUser.manager || null,
     status: rawUser.status || 'Active',
     lastLoginDate: rawUser.lastLoginDate || null,
   };

@@ -12,6 +12,7 @@ import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 
+import { useNavigate } from 'react-router-dom';
 import dashboardService from '../../../services/dashboardService';
 
 /**
@@ -23,6 +24,7 @@ import dashboardService from '../../../services/dashboardService';
  * Role-scoped: each user sees only their relevant overdue items.
  */
 const OverdueItemsCard = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -123,11 +125,13 @@ const OverdueItemsCard = () => {
             icon={<TaskAltRoundedIcon sx={{ fontSize: '0.85rem !important' }} />}
             label={`${overdueTasks.length} overdue task${overdueTasks.length !== 1 ? 's' : ''}`}
             size="small"
+            onClick={() => navigate('/tasks?filter=overdue')}
             sx={{
               backgroundColor: overdueTasks.length > 0 ? '#FEE2E2' : 'action.hover',
               color: overdueTasks.length > 0 ? 'error.dark' : 'text.disabled',
               fontWeight: 700,
               fontSize: '0.72rem',
+              cursor: 'pointer',
             }}
           />
           <Chip
@@ -173,11 +177,13 @@ const OverdueItemsCard = () => {
                   <ListItem
                     key={`${item.type}-${item.id}`}
                     disableGutters
+                    onClick={() => navigate(isTask ? `/tasks/${item.id}` : `/tasks`)}
                     sx={{
                       py: 1.25,
                       px: 1.5,
                       mb: 1,
                       borderRadius: 2,
+                      cursor: 'pointer',
                       backgroundColor: isTask ? 'rgba(211, 47, 47, 0.04)' : 'rgba(245, 124, 0, 0.04)',
                       border: '1px solid',
                       borderColor: isTask ? 'rgba(211, 47, 47, 0.12)' : 'rgba(245, 124, 0, 0.12)',

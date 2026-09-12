@@ -112,4 +112,15 @@ export const API = {
     PROJECT: '/reports/project',
     TASK: '/reports/task',
   },
+
+  // ─── Timecards & Billing ───────────────────────────────────────────
+  TIMECARDS: {
+    BASE: '/timecards',
+    BY_ID: (id) => `/timecards/${id}`,
+    MANAGER_APPROVE: (id) => `/timecards/${id}/manager-approve`,
+    MANAGER_REJECT: (id) => `/timecards/${id}/manager-reject`,
+    FINANCIAL_APPROVE: (id) => `/timecards/${id}/financial-approve`,
+    FINANCIAL_REJECT: (id) => `/timecards/${id}/financial-reject`,
+    PROJECT_BILLING: (projectId) => `/timecards/projects/${projectId}/billing`,
+  },
 };

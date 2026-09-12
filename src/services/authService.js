@@ -97,6 +97,13 @@ class AuthService {
           id: user.DepartmentID,
           name: user.DepartmentName
         },
+        manager: user.ManagerID ? {
+          id: user.ManagerID,
+          name: `${user.ManagerFirstName || ''} ${user.ManagerLastName || ''}`.trim(),
+          firstName: user.ManagerFirstName,
+          lastName: user.ManagerLastName,
+          email: user.ManagerEmail
+        } : null,
         status: user.Status,
         lastLoginDate: new Date().toISOString()
       }
@@ -128,6 +135,13 @@ class AuthService {
           id: user.DepartmentID,
           name: user.DepartmentName
         },
+        manager: user.ManagerID ? {
+          id: user.ManagerID,
+          name: `${user.ManagerFirstName || ''} ${user.ManagerLastName || ''}`.trim(),
+          firstName: user.ManagerFirstName,
+          lastName: user.ManagerLastName,
+          email: user.ManagerEmail
+        } : null,
         status: user.Status,
         lastLoginDate: user.LastLoginDate
       }

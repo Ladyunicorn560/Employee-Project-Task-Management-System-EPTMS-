@@ -4,6 +4,7 @@ const VALID_TASK_STATUSES = [
   'Not Started',
   'Assigned',
   'In Progress',
+  'Waiting for Information',
   'Blocked',
   'Ready for Review',
   'Under Review',
@@ -133,7 +134,11 @@ const updateTaskSchema = z.object({
       .number()
       .min(0, 'Actual hours cannot be negative')
       .optional()
-      .nullable()
+      .nullable(),
+    comment: z
+      .string()
+      .trim()
+      .optional()
   })
 });
 

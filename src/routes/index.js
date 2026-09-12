@@ -16,6 +16,7 @@ const notificationRoutes = require('./notificationRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const reportRoutes = require('./reportRoutes');
 const auditLogRoutes = require('./auditLogRoutes');
+const timecardRoutes = require('./timecardRoutes');
 
 // Mount API v1 Routes
 router.use('/', healthRoutes);
@@ -34,5 +35,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/reports', reportRoutes);
 router.use('/audit-logs', auditLogRoutes);
+router.use('/timecards', timecardRoutes);
 
 module.exports = router;

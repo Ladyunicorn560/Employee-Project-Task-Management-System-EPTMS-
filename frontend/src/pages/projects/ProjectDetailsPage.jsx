@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Card, CardContent, Grid, Typography, Divider, Alert, Tabs, Tab,
+  Box, Card, CardContent, Grid, Typography, Divider, Alert, Tabs, Tab, Chip,
 } from '@mui/material';
 import KeyboardArrowLeftRoundedIcon from '@mui/icons-material/KeyboardArrowLeftRounded';
 import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutlined';
@@ -55,6 +55,7 @@ const ProjectDetailsPage = () => {
 
   const isAdmin = user?.roleName === ROLES.ADMINISTRATOR;
   const isPM = user?.roleName === ROLES.PROJECT_MANAGER;
+  const isEmployee = user?.roleName === ROLES.EMPLOYEE;
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -203,6 +204,40 @@ const ProjectDetailsPage = () => {
                 </Box>
               </CardContent>
             </Card>
+
+            {/* Financial & Profit/Loss Summary Card (Hidden for Employees) */}
+            {!isEmployee && (
+              <Card sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)' }}>
+                <CardContent sx={{ p: 3.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="h6" fontWeight={700}>
+                      Financial & Profit / Loss Summary
+                    </Typography>
+                    {project.profitLoss !== undefined && (
+                      <Chip
+                        label={project.isProfit ? `Profit +₹${Number(project.profitLoss).toLocaleString()}` : `Loss -₹${Math.abs(Number(project.profitLoss)).toLocaleString()}`}
+                        color={project.isProfit ? 'success' : 'error'}
+                        sx={{ fontWeight: 800 }}
+                      />
+                    )}
+                  </Box>
+                  <Divider />
+                  <Box sx={{ mt: 1 }}>
+                    <DetailInfoRow label="Total Amount (Budget)" value={`₹${Number(project.totalAmount || project.TotalAmount || 0).toLocaleString()}`} />
+                    <DetailInfoRow label="Total Incurred Cost (Timecards)" value={`₹${Number(project.totalIncurredCost || project.TotalIncurredCost || 0).toLocaleString()}`} />
+                    <DetailInfoRow label="Other Expenses" value={`₹${Number(project.otherExpenses || project.OtherExpenses || 0).toLocaleString()}`} />
+                    <DetailInfoRow
+                      label="Remaining Budget Balance"
+                      value={
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: (project.remainingBudget || 0) >= 0 ? '#2E7D32' : '#D32F2F' }}>
+                          ₹{Number(project.remainingBudget || 0).toLocaleString()}
+                        </Typography>
+                      }
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Audit details */}
             <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>

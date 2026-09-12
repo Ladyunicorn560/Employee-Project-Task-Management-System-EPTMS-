@@ -23,6 +23,8 @@ export const ROUTES = {
   PROJECTS: '/projects',
   MILESTONES: '/milestones',
   TASKS: '/tasks',
+  TIMECARDS: '/timecards',
+  TIMECARDS_CREATE: '/timecards/create',
 
   // Reporting
   REPORTS: '/reports',

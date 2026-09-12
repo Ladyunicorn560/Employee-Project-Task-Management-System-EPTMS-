@@ -66,16 +66,9 @@ const CommentCard = ({ comment, currentUserId, isAdminOrPm, onUpdate, onDelete }
             )}
           </Box>
 
-          {canModify && !isEditing && (
+          {isAdminOrPm && !isEditing && (
             <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {isAuthor && (
-                <Tooltip title="Edit comment">
-                  <IconButton size="small" onClick={() => setIsEditing(true)}>
-                    <ModeEditOutlineOutlinedIcon fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
-              )}
-              <Tooltip title="Delete comment">
+              <Tooltip title="Delete comment (Admin / PM)">
                 <IconButton size="small" color="error" onClick={() => onDelete(comment.id)}>
                   <DeleteOutlineRoundedIcon fontSize="inherit" />
                 </IconButton>

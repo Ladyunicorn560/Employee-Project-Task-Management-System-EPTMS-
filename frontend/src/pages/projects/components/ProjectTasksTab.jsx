@@ -35,8 +35,9 @@ const ProjectTasksTab = ({ project }) => {
   const isPM = user?.roleName === ROLES.PROJECT_MANAGER;
   const isEmployee = user?.roleName === ROLES.EMPLOYEE;
 
-  // PM ownership check: PMs can only add/edit/delete tasks on projects they manage
+  // Permission checks
   const canManageTasks = isAdmin || (isPM && project?.projectManager?.id === user?.id);
+  const canCreateTasks = !!user;
 
   const [milestones, setMilestones] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -251,12 +252,17 @@ const ProjectTasksTab = ({ project }) => {
           </FormControl>
         </Box>
 
-        {canManageTasks && (
+        {canCreateTasks && (
           <AppButton
             variant="primary"
             startIcon={<AddRoundedIcon />}
-            onClick={() => navigate(`${ROUTES.TASKS}/create?milestoneId=${selectedMilestoneId}`)}
-            disabled={!selectedMilestoneId}
+            onClick={() =>
+              navigate(
+                selectedMilestoneId
+                  ? `${ROUTES.TASKS}/create?milestoneId=${selectedMilestoneId}`
+                  : `${ROUTES.TASKS}/create`
+              )
+            }
           >
             Create Task
           </AppButton>

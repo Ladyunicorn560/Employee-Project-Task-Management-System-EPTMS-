@@ -1,0 +1,31 @@
+services:
+  # 1. Backend API (Node.js Express Service)
+  - type: web
+    name: eptms-backend-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: LOG_LEVEL
+        value: info
+
+  # 2. Frontend Web App (Vite React Static Site)
+  - type: web
+    name: eptms-frontend-app
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_ENABLE_DEMO_MODE
+        value: "true"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

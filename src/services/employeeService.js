@@ -43,6 +43,8 @@ class EmployeeService {
       roleId: data.roleId,
       passwordHash,
       status: data.status || 'Active',
+      managerId: data.managerId || null,
+      hourlyRate: data.hourlyRate ?? 50.00,
       createdBy
     });
 

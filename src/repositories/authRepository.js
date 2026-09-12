@@ -25,10 +25,15 @@ class AuthRepository extends BaseRepository {
         e.[DepartmentID],
         d.[DepartmentName],
         e.[RoleID],
-        r.[RoleName]
+        r.[RoleName],
+        e.[ManagerID],
+        m.[FirstName] AS ManagerFirstName,
+        m.[LastName] AS ManagerLastName,
+        m.[Email] AS ManagerEmail
       FROM [dbo].[Employee] e
       INNER JOIN [dbo].[Department] d ON e.[DepartmentID] = d.[DepartmentID]
       INNER JOIN [dbo].[Role] r ON e.[RoleID] = r.[RoleID]
+      LEFT JOIN [dbo].[Employee] m ON e.[ManagerID] = m.[EmployeeID]
       WHERE LOWER(e.[Email]) = LOWER(@Email);
     `;
 
@@ -59,10 +64,15 @@ class AuthRepository extends BaseRepository {
         e.[DepartmentID],
         d.[DepartmentName],
         e.[RoleID],
-        r.[RoleName]
+        r.[RoleName],
+        e.[ManagerID],
+        m.[FirstName] AS ManagerFirstName,
+        m.[LastName] AS ManagerLastName,
+        m.[Email] AS ManagerEmail
       FROM [dbo].[Employee] e
       INNER JOIN [dbo].[Department] d ON e.[DepartmentID] = d.[DepartmentID]
       INNER JOIN [dbo].[Role] r ON e.[RoleID] = r.[RoleID]
+      LEFT JOIN [dbo].[Employee] m ON e.[ManagerID] = m.[EmployeeID]
       WHERE e.[EmployeeID] = @EmployeeID AND e.[IsDeleted] = 0;
     `;
 

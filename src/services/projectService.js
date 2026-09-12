@@ -48,6 +48,7 @@ class ProjectService {
       actualEndDate: data.actualEndDate,
       status: data.status || 'Planning',
       progressPercentage: data.progressPercentage || 0,
+      totalAmount: data.totalAmount || 0,
       createdBy: currentUser.userId
     });
 
@@ -63,8 +64,8 @@ class ProjectService {
   async getProjects(queryParams, currentUser) {
     const query = { ...queryParams };
 
-    // Standard Employees can only view projects they are assigned to
-    if (currentUser.roleName === ROLES.EMPLOYEE) {
+    // Non-administrators (Project Managers, Employees, Reviewers) view assigned/managed projects only
+    if (currentUser.roleName !== ROLES.ADMINISTRATOR) {
       query.assignedEmployeeId = currentUser.userId;
     }
 

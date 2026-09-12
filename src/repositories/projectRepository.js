@@ -56,10 +56,11 @@ class ProjectRepository extends BaseRepository {
       params.FilterEndDate = { type: mssql.Date, value: endDate };
     }
 
-    // Filter projects for non-admin/PM employees (Assigned projects only)
+    // Filter projects for non-admin/PM employees (Assigned, Managed, or Created projects)
     if (assignedEmployeeId) {
       whereClause += ` AND (
         p.[ProjectManagerID] = @AssignedEmployeeID 
+        OR p.[CreatedBy] = @AssignedEmployeeID
         OR EXISTS (
           SELECT 1 FROM [dbo].[ProjectMember] pmemb 
           WHERE pmemb.[ProjectID] = p.[ProjectID] 
@@ -91,6 +92,7 @@ class ProjectRepository extends BaseRepository {
         p.[ActualEndDate],
         p.[Status],
         p.[ProgressPercentage],
+        p.[TotalAmount],
         p.[CreatedDate],
         COUNT(*) OVER() AS TotalCount
       FROM [dbo].[Project] p
@@ -116,6 +118,7 @@ class ProjectRepository extends BaseRepository {
         actualEndDate: proj.ActualEndDate,
         status: proj.Status,
         progressPercentage: proj.ProgressPercentage,
+        totalAmount: proj.TotalAmount ?? 0.00,
         createdDate: proj.CreatedDate,
         department: {
           id: proj.DepartmentID,
@@ -159,7 +162,17 @@ class ProjectRepository extends BaseRepository {
         p.[ActualEndDate],
         p.[Status],
         p.[ProgressPercentage],
-        p.[CreatedDate]
+        p.[TotalAmount],
+        p.[CreatedDate],
+        ISNULL((
+          SELECT SUM(te.[BillingAmount])
+          FROM [dbo].[TimecardEntry] te
+          INNER JOIN [dbo].[Timecard] t ON te.[TimecardID] = t.[TimecardID]
+          WHERE te.[ProjectID] = p.[ProjectID] 
+            AND te.[IsDeleted] = 0 
+            AND t.[IsDeleted] = 0
+            AND t.[Status] NOT IN (N'ManagerRejected', N'FinancialRejected')
+        ), 0.00) AS TotalIncurredCost
       FROM [dbo].[Project] p
       INNER JOIN [dbo].[Department] d ON p.[DepartmentID] = d.[DepartmentID]
       INNER JOIN [dbo].[Employee] pm ON p.[ProjectManagerID] = pm.[EmployeeID]
@@ -176,6 +189,11 @@ class ProjectRepository extends BaseRepository {
     }
 
     const proj = result.recordset[0];
+    const totalAmount = proj.TotalAmount ?? 0.00;
+    const incurredCost = proj.TotalIncurredCost ?? 0.00;
+    const profitLoss = totalAmount - incurredCost;
+    const remainingBudget = totalAmount - incurredCost;
+
     return {
       id: proj.ProjectID,
       projectName: proj.ProjectName,
@@ -185,6 +203,11 @@ class ProjectRepository extends BaseRepository {
       actualEndDate: proj.ActualEndDate,
       status: proj.Status,
       progressPercentage: proj.ProgressPercentage,
+      totalAmount,
+      incurredCost,
+      remainingBudget,
+      profitLoss,
+      isProfit: profitLoss >= 0,
       createdDate: proj.CreatedDate,
       department: {
         id: proj.DepartmentID,
@@ -291,17 +314,18 @@ class ProjectRepository extends BaseRepository {
     actualEndDate,
     status,
     progressPercentage,
+    totalAmount,
     createdBy
   }) {
     const queryStr = `
       INSERT INTO [dbo].[Project] (
         [ProjectName], [Description], [DepartmentID], [ProjectManagerID], 
-        [StartDate], [EndDate], [ActualEndDate], [Status], [ProgressPercentage], [CreatedBy]
+        [StartDate], [EndDate], [ActualEndDate], [Status], [ProgressPercentage], [TotalAmount], [CreatedBy]
       )
       OUTPUT INSERTED.[ProjectID]
       VALUES (
         @ProjectName, @Description, @DepartmentID, @ProjectManagerID, 
-        @StartDate, @EndDate, @ActualEndDate, @Status, @ProgressPercentage, @CreatedBy
+        @StartDate, @EndDate, @ActualEndDate, @Status, @ProgressPercentage, @TotalAmount, @CreatedBy
       );
     `;
 
@@ -315,6 +339,7 @@ class ProjectRepository extends BaseRepository {
       ActualEndDate: { type: mssql.Date, value: actualEndDate || null },
       Status: { type: mssql.NVarChar(30), value: status || 'Planning' },
       ProgressPercentage: { type: mssql.Decimal(5, 2), value: progressPercentage || 0 },
+      TotalAmount: { type: mssql.Decimal(14, 2), value: totalAmount || 0 },
       CreatedBy: { type: mssql.Int, value: createdBy }
     };
 
@@ -347,6 +372,10 @@ class ProjectRepository extends BaseRepository {
     if (updateData.projectManagerId !== undefined) {
       setClauses.push('[ProjectManagerID] = @ProjectManagerID');
       params.ProjectManagerID = { type: mssql.Int, value: updateData.projectManagerId };
+    }
+    if (updateData.totalAmount !== undefined) {
+      setClauses.push('[TotalAmount] = @TotalAmount');
+      params.TotalAmount = { type: mssql.Decimal(14, 2), value: updateData.totalAmount };
     }
     if (updateData.startDate !== undefined) {
       setClauses.push('[StartDate] = @StartDate');

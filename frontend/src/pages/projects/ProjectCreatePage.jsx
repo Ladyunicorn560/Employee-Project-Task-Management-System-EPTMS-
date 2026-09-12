@@ -13,6 +13,7 @@ import FormActions from '../../components/forms/FormActions';
 import projectService from '../../services/projectService';
 import departmentService from '../../services/departmentService';
 import employeeService from '../../services/employeeService';
+import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
 
@@ -22,6 +23,7 @@ import { ROLES } from '../../constants/roles';
  */
 const ProjectCreatePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [departments, setDepartments] = useState([]);
   const [pms, setPms] = useState([]);
@@ -30,6 +32,7 @@ const ProjectCreatePage = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -38,11 +41,12 @@ const ProjectCreatePage = () => {
       projectName: '',
       description: '',
       departmentId: '',
-      projectManagerId: '',
+      projectManagerId: user?.id ? String(user.id) : '',
       status: 'Planning',
       startDate: '',
       endDate: '',
       progressPercentage: 0,
+      totalAmount: 0,
     },
   });
 
@@ -64,6 +68,11 @@ const ProjectCreatePage = () => {
             emp.role?.name === ROLES.ADMINISTRATOR
         );
         setPms(filtered);
+
+        // If logged in user is a PM or Admin, preselect them in form
+        if (user?.id) {
+          setValue('projectManagerId', user.id);
+        }
       } catch (err) {
         console.error('Failed to load project form options:', err);
         toast.error('Failed to load department or project manager list options.');
@@ -72,19 +81,20 @@ const ProjectCreatePage = () => {
       }
     };
     fetchLists();
-  }, []);
+  }, [user?.id, setValue]);
 
   const onSubmit = async (data) => {
     try {
       const payload = {
         projectName: data.projectName.trim(),
-        description: data.description.trim() || null,
+        description: data.description ? data.description.trim() : null,
         departmentId: parseInt(data.departmentId, 10),
         projectManagerId: parseInt(data.projectManagerId, 10),
         status: data.status,
         startDate: data.startDate,
         endDate: data.endDate,
         progressPercentage: parseFloat(data.progressPercentage || 0),
+        totalAmount: parseFloat(data.totalAmount || 0),
       };
 
       await projectService.create(payload);
@@ -243,6 +253,20 @@ const ProjectCreatePage = () => {
                 {...register('progressPercentage', {
                   min: { value: 0, message: 'Cannot be negative' },
                   max: { value: 100, message: 'Cannot exceed 100%' },
+                })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                id="proj-create-amount"
+                fullWidth
+                type="number"
+                label="Total Project Amount (₹)"
+                slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+                error={!!errors.totalAmount}
+                helperText={errors.totalAmount?.message || 'Budget budget amount for financial profit/loss tracking'}
+                {...register('totalAmount', {
+                  min: { value: 0, message: 'Amount cannot be negative' },
                 })}
               />
             </Grid>

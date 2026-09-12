@@ -69,6 +69,10 @@ const NotificationPage = lazy(() => import('../pages/notifications/NotificationP
 // Reports Page
 const ReportsPage = lazy(() => import('../pages/reports/ReportsPage'));
 
+// Timecard Pages
+const TimecardListPage = lazy(() => import('../pages/timecards/TimecardListPage'));
+const TimecardCreatePage = lazy(() => import('../pages/timecards/TimecardCreatePage'));
+
 // MUI Icons for placeholder pages
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import CorporateFareRoundedIcon from '@mui/icons-material/CorporateFareRounded';
@@ -305,7 +309,7 @@ const AppRoutes = () => {
         <Route
           path={`${ROUTES.TASKS}/create`}
           element={
-            <ProtectedRoute allowedRoles={MANAGER_ROLES}>
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
               <MainLayout><TaskCreatePage /></MainLayout>
             </ProtectedRoute>
           }
@@ -323,6 +327,24 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
               <MainLayout><TaskEditPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Timecards & Billing Module */}
+        <Route
+          path={ROUTES.TIMECARDS}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><TimecardListPage /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.TIMECARDS_CREATE}
+          element={
+            <ProtectedRoute allowedRoles={AUTHENTICATED_ROLES}>
+              <MainLayout><TimecardCreatePage /></MainLayout>
             </ProtectedRoute>
           }
         />

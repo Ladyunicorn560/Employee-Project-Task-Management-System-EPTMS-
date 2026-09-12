@@ -1,6 +1,7 @@
 const taskRepository = require('../repositories/taskRepository');
 const projectRepository = require('../repositories/projectRepository');
 const projectMemberRepository = require('../repositories/projectMemberRepository');
+const commentRepository = require('../repositories/commentRepository');
 const notificationService = require('./notificationService');
 const emailService = require('./emailService');
 const NotFoundError = require('../errors/NotFoundError');
@@ -12,7 +13,7 @@ const ROLES = require('../constants/roles');
 
 class TaskService {
   /**
-   * Creates a new task under a milestone (Admin & PM managing project)
+   * Creates a new task under a milestone
    */
   async createTask(milestoneId, data, currentUser) {
     // 1. Verify Milestone and Project hierarchy exists
@@ -21,10 +22,16 @@ class TaskService {
       throw new NotFoundError(`Milestone with ID ${milestoneId} was not found`);
     }
 
-    // 2. PM Ownership Guard
+    // 2. Access Control Guard
     if (currentUser.roleName === ROLES.PROJECT_MANAGER && hierarchy.ProjectManagerID !== currentUser.userId) {
       logger.warn(`Unauthorized task creation attempt: PM ${currentUser.email} tried to add task to Milestone ID ${milestoneId} on Project owned by PM ID ${hierarchy.ProjectManagerID}`);
       throw new ForbiddenError('Access denied. You can only create tasks for projects you manage.');
+    }
+    if (currentUser.roleName === ROLES.EMPLOYEE) {
+      const isAssigned = await projectRepository.isEmployeeAssignedToProject(hierarchy.ProjectID, currentUser.userId);
+      if (!isAssigned) {
+        throw new ForbiddenError('Access denied. You can only create tasks for projects you are assigned to.');
+      }
     }
 
     // 3. If AssignedEmployeeID is specified, validate existence, active status, and project membership
@@ -151,6 +158,7 @@ class TaskService {
    */
   async getAllTasks(queryParams, currentUser) {
     const { milestoneId, projectId } = queryParams;
+    const query = { ...queryParams };
 
     if (currentUser.roleName === ROLES.EMPLOYEE && projectId) {
       const isAssigned = await projectRepository.isEmployeeAssignedToProject(projectId, currentUser.userId);
@@ -160,7 +168,13 @@ class TaskService {
       }
     }
 
-    return taskRepository.findByMilestoneId(milestoneId || null, queryParams);
+    // Non-administrators (Project Manager, Employee, Reviewer) view scoped tasks only
+    if (currentUser.roleName !== ROLES.ADMINISTRATOR) {
+      query.userRole = currentUser.roleName;
+      query.scopedUserId = currentUser.userId;
+    }
+
+    return taskRepository.findByMilestoneId(milestoneId || null, query);
   }
 
   /**
@@ -217,6 +231,18 @@ class TaskService {
       }
     }
 
+    // Task status change constraints: Mandatory comment & cancellation restriction for Employee
+    if (updateData.status && updateData.status !== existing.status) {
+      if (updateData.status === 'Cancelled' && currentUser.roleName === ROLES.EMPLOYEE) {
+        logger.warn(`Employee task cancellation rejected [TaskID: ${taskId}, User: ${currentUser.email}]`);
+        throw new ForbiddenError('Employees cannot cancel tasks. For task cancellation, Manager approval is required.');
+      }
+
+      if (!updateData.comment || !updateData.comment.trim()) {
+        throw new BadRequestError('Comment is mandatory when changing task status.');
+      }
+    }
+
     if (updateData.taskTitle && updateData.taskTitle.toLowerCase() !== existing.taskTitle.toLowerCase()) {
       const titleExists = await taskRepository.findTitleInMilestone(existing.milestoneId, updateData.taskTitle, taskId);
       if (titleExists) {
@@ -258,6 +284,20 @@ class TaskService {
 
     await taskRepository.withTransaction(async (transaction) => {
       await taskRepository.update(taskId, updateData, currentUser.userId, transaction);
+
+      if (updateData.comment && updateData.comment.trim()) {
+        await commentRepository.create(
+          {
+            taskId,
+            employeeId: currentUser.userId,
+            commentText: updateData.status && updateData.status !== existing.status
+              ? `[Status changed from '${existing.status}' to '${updateData.status}']: ${updateData.comment.trim()}`
+              : updateData.comment.trim(),
+            createdBy: currentUser.userId
+          },
+          transaction
+        );
+      }
 
       if (updateData.status && updateData.status !== existing.status) {
         await taskRepository.recalculateMilestoneAndProjectProgress(

@@ -47,6 +47,11 @@ const createProjectSchema = z.object({
         .min(0, 'Progress percentage cannot be negative')
         .max(100, 'Progress percentage cannot exceed 100')
         .optional()
+        .default(0),
+      totalAmount: z
+        .number()
+        .min(0, 'Total project amount cannot be negative')
+        .optional()
         .default(0)
     })
     .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
@@ -110,6 +115,10 @@ const updateProjectSchema = z.object({
         .number()
         .min(0, 'Progress percentage cannot be negative')
         .max(100, 'Progress percentage cannot exceed 100')
+        .optional(),
+      totalAmount: z
+        .number()
+        .min(0, 'Total project amount cannot be negative')
         .optional()
     })
     .refine(
@@ -150,6 +159,10 @@ const getProjectsQuerySchema = z.object({
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : undefined)),
     projectManagerId: z
+      .string()
+      .optional()
+      .transform((val) => (val ? parseInt(val, 10) : undefined)),
+    assignedEmployeeId: z
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : undefined)),

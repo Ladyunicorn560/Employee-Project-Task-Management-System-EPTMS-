@@ -7,7 +7,7 @@ class DashboardRepository extends BaseRepository {
    */
   async getOverviewMetrics({ roleName, userId, departmentId, projectId }) {
     let projectWhere = 'WHERE p.[IsDeleted] = 0';
-    let taskWhere = 'WHERE t.[IsDeleted] = 0 AND m.[IsDeleted] = 0 AND p.[IsDeleted] = 0';
+    let taskWhere = 'WHERE t.[IsDeleted] = 0 AND (m.[IsDeleted] = 0 OR m.[IsDeleted] IS NULL) AND (p.[IsDeleted] = 0 OR p.[IsDeleted] IS NULL)';
     let empWhere = 'WHERE e.[IsDeleted] = 0';
     let msWhere = 'WHERE m.[IsDeleted] = 0 AND p.[IsDeleted] = 0';
 
@@ -69,8 +69,8 @@ class DashboardRepository extends BaseRepository {
         COUNT(CASE WHEN t.[Status] = N'Under Review' OR t.[Status] = N'Ready for Review' THEN 1 END) AS UnderReviewTasks,
         COUNT(CASE WHEN t.[Status] <> N'Completed' AND t.[Status] <> N'Cancelled' AND t.[DueDate] < CAST(SYSUTCDATETIME() AS DATE) THEN 1 END) AS OverdueTasks
       FROM [dbo].[Task] t
-      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
-      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
+      LEFT JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      LEFT JOIN [dbo].[Project] p ON (t.[ProjectID] = p.[ProjectID] OR m.[ProjectID] = p.[ProjectID])
       ${taskWhere};
 
       -- Milestones
@@ -81,13 +81,28 @@ class DashboardRepository extends BaseRepository {
       FROM [dbo].[Milestone] m
       INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
       ${msWhere};
+
+      -- Timecards
+      SELECT 
+        COUNT(*) AS TotalTimecards,
+        COUNT(CASE WHEN t.[Status] = N'Submitted' THEN 1 END) AS PendingManagerTimecards,
+        COUNT(CASE WHEN t.[Status] = N'ManagerApproved' THEN 1 END) AS PendingFinancialTimecards,
+        COUNT(CASE WHEN t.[Status] = N'FinancialApproved' THEN 1 END) AS FinancialApprovedTimecards,
+        SUM(CASE WHEN t.[Status] = N'FinancialApproved' THEN t.[TotalAmount] ELSE 0 END) AS TotalApprovedBilling,
+        COUNT(CASE WHEN t.[EmployeeID] = @CurrentUserId THEN 1 END) AS MyTotalTimecards,
+        COUNT(CASE WHEN t.[EmployeeID] = @CurrentUserId AND t.[Status] = N'Submitted' THEN 1 END) AS MyPendingTimecards
+      FROM [dbo].[Timecard] t
+      WHERE t.[IsDeleted] = 0;
     `;
+
+    params.CurrentUserId = { type: mssql.Int, value: userId };
 
     const result = await this.query(overviewQuery, params);
     const emps = result.recordsets[0][0] || {};
     const projs = result.recordsets[1][0] || {};
     const tasks = result.recordsets[2][0] || {};
     const mss = result.recordsets[3][0] || {};
+    const timecards = result.recordsets[4]?.[0] || {};
 
     return {
       employees: {
@@ -116,6 +131,15 @@ class DashboardRepository extends BaseRepository {
         total: mss.TotalMilestones || 0,
         completed: mss.CompletedMilestones || 0,
         inProgress: mss.InProgressMilestones || 0
+      },
+      timecards: {
+        total: timecards.TotalTimecards || 0,
+        pendingManager: timecards.PendingManagerTimecards || 0,
+        pendingFinancial: timecards.PendingFinancialTimecards || 0,
+        financialApproved: timecards.FinancialApprovedTimecards || 0,
+        totalApprovedBilling: parseFloat((timecards.TotalApprovedBilling || 0).toFixed(2)),
+        myTotal: timecards.MyTotalTimecards || 0,
+        myPending: timecards.MyPendingTimecards || 0
       }
     };
   }
@@ -269,8 +293,8 @@ class DashboardRepository extends BaseRepository {
         COUNT(CASE WHEN t.[Status] = N'Completed' THEN 1 END) AS CompletedTasks,
         COUNT(CASE WHEN t.[Status] <> N'Completed' AND t.[Status] <> N'Cancelled' AND t.[DueDate] < CAST(SYSUTCDATETIME() AS DATE) THEN 1 END) AS OverdueTasks
       FROM [dbo].[Task] t
-      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
-      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
+      LEFT JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      LEFT JOIN [dbo].[Project] p ON (t.[ProjectID] = p.[ProjectID] OR m.[ProjectID] = p.[ProjectID])
       ${whereClause};
     `;
 
@@ -433,8 +457,8 @@ class DashboardRepository extends BaseRepository {
     // Role-based task WHERE clause
     let taskWhere = `
       WHERE t.[IsDeleted] = 0
-        AND m.[IsDeleted] = 0
-        AND p.[IsDeleted] = 0
+        AND (m.[IsDeleted] = 0 OR m.[IsDeleted] IS NULL)
+        AND (p.[IsDeleted] = 0 OR p.[IsDeleted] IS NULL)
         AND t.[Status] NOT IN (N'Completed', N'Cancelled')
         AND t.[DueDate] < CAST(SYSUTCDATETIME() AS DATE)
     `;
@@ -482,9 +506,9 @@ class DashboardRepository extends BaseRepository {
         NULL AS ReviewerEmail,
         t.[CreatedDate] AS CreatedDate
       FROM [dbo].[Task] t
-      INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
-      INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
-      INNER JOIN [dbo].[Employee] e ON t.[AssignedTo] = e.[EmployeeID]
+      LEFT JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
+      LEFT JOIN [dbo].[Project] p ON (t.[ProjectID] = p.[ProjectID] OR m.[ProjectID] = p.[ProjectID])
+      LEFT JOIN [dbo].[Employee] e ON t.[AssignedTo] = e.[EmployeeID]
       ${taskWhere}
 
       UNION ALL

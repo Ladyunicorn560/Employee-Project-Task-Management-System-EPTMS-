@@ -171,6 +171,24 @@ const EmployeeDetailsPage = () => {
               <Box sx={{ mt: 1 }}>
                 <DetailInfoRow label="Department" value={employee.department?.name} />
                 <DetailInfoRow label="Assigned Role" value={employee.role?.name} />
+                <DetailInfoRow
+                  label="Reporting Manager"
+                  value={
+                    employee.manager
+                      ? `${employee.manager.name || `${employee.manager.firstName || ''} ${employee.manager.lastName || ''}`.trim()}${employee.manager.email ? ` (${employee.manager.email})` : ''}`
+                      : employee.ManagerName || 'None / Executive'
+                  }
+                />
+                <DetailInfoRow
+                  label="Billing Rate (₹/hr)"
+                  value={
+                    employee.hourlyRate !== undefined && employee.hourlyRate !== null
+                      ? `₹${employee.hourlyRate}/hr`
+                      : employee.HourlyRate !== undefined && employee.HourlyRate !== null
+                      ? `₹${employee.HourlyRate}/hr`
+                      : '—'
+                  }
+                />
               </Box>
             </CardContent>
           </Card>

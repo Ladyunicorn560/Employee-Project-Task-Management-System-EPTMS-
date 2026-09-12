@@ -42,7 +42,18 @@ const createEmployeeSchema = z.object({
       .enum(['Active', 'Inactive', 'Suspended'], {
         errorMap: () => ({ message: 'Status must be Active, Inactive, or Suspended' })
       })
-      .default('Active')
+      .default('Active'),
+    managerId: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .nullable(),
+    hourlyRate: z
+      .number()
+      .min(0, 'Hourly rate cannot be negative')
+      .optional()
+      .default(50.00)
   })
 });
 
@@ -100,7 +111,18 @@ const updateEmployeeSchema = z.object({
       .enum(['Active', 'Inactive', 'Suspended'], {
         errorMap: () => ({ message: 'Status must be Active, Inactive, or Suspended' })
       })
+      .optional(),
+    managerId: z
+      .number()
+      .int()
+      .positive()
       .optional()
+      .nullable(),
+    hourlyRate: z
+      .number()
+      .min(0, 'Hourly rate cannot be negative')
+      .optional()
+      .nullable()
   })
 });
 

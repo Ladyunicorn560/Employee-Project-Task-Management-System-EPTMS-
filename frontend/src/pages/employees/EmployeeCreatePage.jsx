@@ -24,6 +24,7 @@ const EmployeeCreatePage = () => {
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [loadingLists, setLoadingLists] = useState(true);
 
   const {
@@ -40,23 +41,27 @@ const EmployeeCreatePage = () => {
       password: '',
       departmentId: '',
       roleId: '',
+      managerId: '',
+      hourlyRate: 50.0,
       status: 'Active',
     },
   });
 
-  // Fetch roles and departments for select inputs
+  // Fetch roles, departments, and manager list for select inputs
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [deptRes, roleRes] = await Promise.all([
+        const [deptRes, roleRes, empRes] = await Promise.all([
           departmentService.getAll({ limit: 100 }),
           roleService.getAll({ limit: 100 }),
+          employeeService.getAll({ limit: 100 }),
         ]);
         setDepartments(deptRes.data || []);
         setRoles(roleRes.data || []);
+        setManagers(empRes.data || []);
       } catch (err) {
         console.error('Failed to load form options:', err);
-        toast.error('Failed to load departments or roles options.');
+        toast.error('Failed to load departments, roles, or managers options.');
       } finally {
         setLoadingLists(false);
       }
@@ -75,6 +80,8 @@ const EmployeeCreatePage = () => {
         password: data.password,
         departmentId: parseInt(data.departmentId, 10),
         roleId: parseInt(data.roleId, 10),
+        managerId: data.managerId ? parseInt(data.managerId, 10) : null,
+        hourlyRate: parseFloat(data.hourlyRate || 50.0),
         status: data.status,
       };
 
@@ -138,6 +145,20 @@ const EmployeeCreatePage = () => {
                 {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
               </FormControl>
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                id="emp-hourly-rate"
+                fullWidth
+                type="number"
+                label="Per/Hour Billing Rate (₹/hr)"
+                slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
+                error={!!errors.hourlyRate}
+                helperText={errors.hourlyRate?.message || 'Standard rate used for timecard financial cost logging'}
+                {...register('hourlyRate', {
+                  min: { value: 0, message: 'Rate cannot be negative' }
+                })}
+              />
+            </Grid>
           </Grid>
         </FormSection>
 
@@ -179,7 +200,7 @@ const EmployeeCreatePage = () => {
         </FormSection>
 
         {/* Work Assignment */}
-        <FormSection title="Work & Hierarchy" subtitle="Assign organizational node and credentials level">
+        <FormSection title="Work & Hierarchy" subtitle="Assign organizational node, system role, and reporting manager">
           <Grid container spacing={2.5}>
             <Grid item xs={12} sm={6}>
               <FormControl size="medium" fullWidth error={!!errors.departmentId} disabled={loadingLists}>
@@ -217,6 +238,25 @@ const EmployeeCreatePage = () => {
                   ))}
                 </Select>
                 {errors.roleId && <FormHelperText>{errors.roleId.message}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl size="medium" fullWidth error={!!errors.managerId} disabled={loadingLists}>
+                <InputLabel id="emp-create-mgr-label">Assigned Reporting Manager</InputLabel>
+                <Select
+                  labelId="emp-create-mgr-label"
+                  label="Assigned Reporting Manager"
+                  defaultValue=""
+                  {...register('managerId')}
+                >
+                  <MenuItem value="">None / Direct Executive</MenuItem>
+                  {managers.map((mgr) => (
+                    <MenuItem key={mgr.id} value={mgr.id}>
+                      {mgr.firstName} {mgr.lastName} ({mgr.role?.name || 'Employee'})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.managerId && <FormHelperText>{errors.managerId.message}</FormHelperText>}
               </FormControl>
             </Grid>
           </Grid>

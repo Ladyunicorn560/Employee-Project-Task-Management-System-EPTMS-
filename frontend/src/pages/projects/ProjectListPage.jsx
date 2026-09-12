@@ -86,8 +86,8 @@ const ProjectListPage = () => {
     setLoading(true);
     setError(false);
     try {
-      // Role-based restrictions: Employees and Reviewers view assigned only
-      const assignedEmployeeId = isEmployee || isReviewer ? user?.id : undefined;
+      // Role-based restrictions: Non-admin users view assigned/managed projects only
+      const assignedEmployeeId = !isAdmin ? user?.id : undefined;
 
       const res = await projectService.getAll({
         page: page + 1,
@@ -202,6 +202,16 @@ const ProjectListPage = () => {
         minWidth: 130,
         render: (val) => <ProgressBar value={val} color="auto" />,
       },
+      ...(!isEmployee
+        ? [
+            {
+              id: 'totalAmount',
+              label: 'Budget (₹)',
+              minWidth: 110,
+              render: (val, row) => `₹${Number(row.totalAmount || row.TotalAmount || 0).toLocaleString()}`,
+            },
+          ]
+        : []),
       {
         id: 'actions',
         label: 'Actions',
@@ -237,7 +247,7 @@ const ProjectListPage = () => {
         },
       },
     ],
-    [isAdmin, isPM, user?.id]
+    [isAdmin, isPM, isEmployee, user?.id]
   );
 
   return (

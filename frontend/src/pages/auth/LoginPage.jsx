@@ -213,6 +213,57 @@ const LoginPage = () => {
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </AppButton>
 
+        {/* Feature-flagged Quick Demo Logins for Public Portfolio Deployment */}
+        {import.meta.env.VITE_ENABLE_DEMO_MODE === 'true' && (
+          <Box
+            sx={{
+              mt: 2.5,
+              mb: 2.5,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'action.hover',
+              border: '1px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="caption" fontWeight={600} color="text.secondary" display="block" mb={1} textAlign="center">
+              💡 Quick Demo Roles (Click to auto-fill credentials):
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <AppButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setValue('email', 'admin@eptms-demo.com');
+                  setValue('password', 'Admin@123456');
+                }}
+              >
+                👑 Admin
+              </AppButton>
+              <AppButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setValue('email', 'manager@eptms-demo.com');
+                  setValue('password', 'Manager@123456');
+                }}
+              >
+                💼 Manager
+              </AppButton>
+              <AppButton
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  setValue('email', 'employee@eptms-demo.com');
+                  setValue('password', 'Employee@123456');
+                }}
+              >
+                👤 Employee
+              </AppButton>
+            </Box>
+          </Box>
+        )}
+
         <Divider sx={{ my: 2.5 }}>
           <Typography variant="caption" color="text.disabled">
             Employee Project & Task Management System

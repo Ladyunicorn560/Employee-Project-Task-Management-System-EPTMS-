@@ -25,6 +25,8 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
 
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+
 import { ROUTES } from '../../constants/routes';
 import { ROLES } from '../../constants/roles';
 import useAuth from '../../hooks/useAuth';
@@ -38,6 +40,7 @@ const ALL_NAV_ITEMS = {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
+    { id: 'timecards', label: 'Timecards', icon: AccessTimeRoundedIcon, path: ROUTES.TIMECARDS },
     { id: 'calendar', label: 'Calendar', icon: CalendarMonthRoundedIcon, path: ROUTES.CALENDAR },
     { id: 'kanban', label: 'Kanban', icon: ViewKanbanRoundedIcon, path: ROUTES.KANBAN },
     { id: 'reviews', label: 'Review Queue', icon: RateReviewRoundedIcon, path: ROUTES.REVIEWS },
@@ -53,6 +56,7 @@ const ALL_NAV_ITEMS = {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
+    { id: 'timecards', label: 'Timecards', icon: AccessTimeRoundedIcon, path: ROUTES.TIMECARDS },
     { id: 'calendar', label: 'Calendar', icon: CalendarMonthRoundedIcon, path: ROUTES.CALENDAR },
     { id: 'kanban', label: 'Kanban', icon: ViewKanbanRoundedIcon, path: ROUTES.KANBAN },
     { id: 'reviews', label: 'Review Queue', icon: RateReviewRoundedIcon, path: ROUTES.REVIEWS },
@@ -63,6 +67,7 @@ const ALL_NAV_ITEMS = {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
+    { id: 'timecards', label: 'Timecards', icon: AccessTimeRoundedIcon, path: ROUTES.TIMECARDS },
     { id: 'calendar', label: 'Calendar', icon: CalendarMonthRoundedIcon, path: ROUTES.CALENDAR },
     { id: 'kanban', label: 'Kanban', icon: ViewKanbanRoundedIcon, path: ROUTES.KANBAN },
     { id: 'reports', label: 'Reports', icon: AssessmentRoundedIcon, path: ROUTES.REPORTS },
@@ -71,6 +76,7 @@ const ALL_NAV_ITEMS = {
     { id: 'dashboard', label: 'Dashboard', icon: DashboardRoundedIcon, path: ROUTES.DASHBOARD },
     { id: 'projects', label: 'Projects', icon: FolderRoundedIcon, path: ROUTES.PROJECTS },
     { id: 'tasks', label: 'Tasks', icon: TaskAltRoundedIcon, path: ROUTES.TASKS },
+    { id: 'timecards', label: 'Timecards', icon: AccessTimeRoundedIcon, path: ROUTES.TIMECARDS },
     { id: 'calendar', label: 'Calendar', icon: CalendarMonthRoundedIcon, path: ROUTES.CALENDAR },
     { id: 'kanban', label: 'Kanban', icon: ViewKanbanRoundedIcon, path: ROUTES.KANBAN },
     { id: 'reviews', label: 'Review Queue', icon: RateReviewRoundedIcon, path: ROUTES.REVIEWS },

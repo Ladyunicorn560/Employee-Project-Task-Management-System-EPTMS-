@@ -182,6 +182,24 @@ const EmployeeListPage = () => {
         render: (val) => val?.name || '—',
       },
       {
+        id: 'manager',
+        label: 'Assigned Manager',
+        minWidth: 150,
+        render: (_, row) =>
+          row.manager
+            ? (row.manager.name || `${row.manager.firstName || ''} ${row.manager.lastName || ''}`.trim() || '—')
+            : row.ManagerName || '—',
+      },
+      {
+        id: 'hourlyRate',
+        label: 'Rate (₹/hr)',
+        minWidth: 100,
+        render: (_, row) => {
+          const rate = row.hourlyRate !== undefined ? row.hourlyRate : row.HourlyRate;
+          return rate !== undefined && rate !== null ? `₹${rate}/hr` : '—';
+        },
+      },
+      {
         id: 'status',
         label: 'Status',
         minWidth: 100,

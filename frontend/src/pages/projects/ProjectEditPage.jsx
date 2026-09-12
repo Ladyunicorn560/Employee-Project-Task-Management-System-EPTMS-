@@ -95,6 +95,7 @@ const ProjectEditPage = () => {
           startDate: toInputDate(projData.startDate),
           endDate: toInputDate(projData.endDate),
           progressPercentage: projData.progressPercentage || 0,
+          totalAmount: projData.totalAmount || projData.TotalAmount || 0,
         });
       } else {
         setLoadError(true);
@@ -136,13 +137,14 @@ const ProjectEditPage = () => {
     try {
       const payload = {
         projectName: data.projectName.trim(),
-        description: data.description.trim() || null,
+        description: data.description ? data.description.trim() : null,
         departmentId: parseInt(data.departmentId, 10),
         projectManagerId: parseInt(data.projectManagerId, 10),
         status: data.status,
         startDate: data.startDate,
         endDate: data.endDate,
         progressPercentage: parseFloat(data.progressPercentage || 0),
+        totalAmount: parseFloat(data.totalAmount || 0),
       };
 
       await projectService.update(id, payload);
@@ -326,6 +328,20 @@ const ProjectEditPage = () => {
                 {...register('progressPercentage', {
                   min: { value: 0, message: 'Cannot be negative' },
                   max: { value: 100, message: 'Cannot exceed 100%' },
+                })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                id="proj-edit-amount"
+                fullWidth
+                type="number"
+                label="Total Project Amount (₹)"
+                slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+                error={!!errors.totalAmount}
+                helperText={errors.totalAmount?.message || 'Budget amount for financial profit/loss calculations'}
+                {...register('totalAmount', {
+                  min: { value: 0, message: 'Amount cannot be negative' },
                 })}
               />
             </Grid>

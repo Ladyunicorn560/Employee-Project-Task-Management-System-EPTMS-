@@ -12,6 +12,8 @@ class TaskRepository extends BaseRepository {
     priority,
     assignedEmployeeId,
     reviewerId,
+    userRole,
+    scopedUserId,
     sortBy = 'DueDate',
     sortOrder = 'ASC',
     page = 1,
@@ -55,6 +57,29 @@ class TaskRepository extends BaseRepository {
       params.ReviewerID = { type: mssql.Int, value: reviewerId };
     }
 
+    if (userRole && scopedUserId) {
+      if (userRole === 'Project Manager') {
+        whereClause += ` AND (
+          p.[ProjectManagerID] = @ScopedUserId 
+          OR t.[AssignedTo] = @ScopedUserId 
+          OR t.[ReviewerID] = @ScopedUserId 
+          OR EXISTS (
+            SELECT 1 FROM [dbo].[ProjectMember] pmemb 
+            WHERE pmemb.[ProjectID] = p.[ProjectID] 
+              AND pmemb.[EmployeeID] = @ScopedUserId 
+              AND pmemb.[IsDeleted] = 0
+          )
+        )`;
+        params.ScopedUserId = { type: mssql.Int, value: scopedUserId };
+      } else if (userRole === 'Employee') {
+        whereClause += ' AND t.[AssignedTo] = @ScopedUserId';
+        params.ScopedUserId = { type: mssql.Int, value: scopedUserId };
+      } else if (userRole === 'Reviewer') {
+        whereClause += ' AND (t.[ReviewerID] = @ScopedUserId OR t.[AssignedTo] = @ScopedUserId)';
+        params.ScopedUserId = { type: mssql.Int, value: scopedUserId };
+      }
+    }
+
     if (search) {
       whereClause += ' AND (t.[Title] LIKE @Search OR t.[Description] LIKE @Search)';
       params.Search = { type: mssql.NVarChar(256), value: `%${search}%` };
@@ -93,12 +118,25 @@ class TaskRepository extends BaseRepository {
         t.[DueDate],
         t.[CompletedDate],
         t.[CreatedDate],
+        ISNULL(t.[EstimatedHours], 0) AS TaskEstimatedHours,
+        ISNULL(t.[ActualHours], 0) AS TaskActualHours,
+        CASE WHEN sub.SubtaskEstHours IS NOT NULL AND sub.SubtaskEstHours > 0 THEN sub.SubtaskEstHours ELSE ISNULL(t.[EstimatedHours], 0) END AS EstimatedHours,
+        CASE WHEN sub.SubtaskActHours IS NOT NULL AND sub.SubtaskActHours > 0 THEN sub.SubtaskActHours ELSE ISNULL(t.[ActualHours], 0) END AS ActualHours,
         COUNT(*) OVER() AS TotalCount
       FROM [dbo].[Task] t
       LEFT JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
       LEFT JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
       LEFT JOIN [dbo].[Employee] ae ON t.[AssignedTo] = ae.[EmployeeID]
       LEFT JOIN [dbo].[Employee] re ON t.[ReviewerID] = re.[EmployeeID]
+      LEFT JOIN (
+        SELECT 
+          [TaskID],
+          SUM(ISNULL([EstimatedHours], 0)) AS SubtaskEstHours,
+          SUM(ISNULL([ActualHours], 0)) AS SubtaskActHours
+        FROM [dbo].[Subtask]
+        WHERE [IsDeleted] = 0
+        GROUP BY [TaskID]
+      ) sub ON t.[TaskID] = sub.[TaskID]
       ${whereClause}
       ORDER BY t.[${safeSortBy}] ${safeSortOrder}
       OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;
@@ -145,7 +183,9 @@ class TaskRepository extends BaseRepository {
         startDate: task.StartDate,
         dueDate: task.DueDate,
         completedDate: task.CompletedDate,
-        createdDate: task.CreatedDate
+        createdDate: task.CreatedDate,
+        estimatedHours: task.EstimatedHours !== null && task.EstimatedHours !== undefined ? Number(task.EstimatedHours) : 0,
+        actualHours: task.ActualHours !== null && task.ActualHours !== undefined ? Number(task.ActualHours) : 0
       };
     });
 
@@ -188,12 +228,25 @@ class TaskRepository extends BaseRepository {
         t.[StartDate],
         t.[DueDate],
         t.[CompletedDate],
-        t.[CreatedDate]
+        t.[CreatedDate],
+        ISNULL(t.[EstimatedHours], 0) AS TaskEstimatedHours,
+        ISNULL(t.[ActualHours], 0) AS TaskActualHours,
+        CASE WHEN sub.SubtaskEstHours IS NOT NULL AND sub.SubtaskEstHours > 0 THEN sub.SubtaskEstHours ELSE ISNULL(t.[EstimatedHours], 0) END AS EstimatedHours,
+        CASE WHEN sub.SubtaskActHours IS NOT NULL AND sub.SubtaskActHours > 0 THEN sub.SubtaskActHours ELSE ISNULL(t.[ActualHours], 0) END AS ActualHours
       FROM [dbo].[Task] t
       INNER JOIN [dbo].[Milestone] m ON t.[MilestoneID] = m.[MilestoneID]
       INNER JOIN [dbo].[Project] p ON m.[ProjectID] = p.[ProjectID]
       LEFT JOIN [dbo].[Employee] ae ON t.[AssignedTo] = ae.[EmployeeID]
       LEFT JOIN [dbo].[Employee] re ON t.[ReviewerID] = re.[EmployeeID]
+      LEFT JOIN (
+        SELECT 
+          [TaskID],
+          SUM(ISNULL([EstimatedHours], 0)) AS SubtaskEstHours,
+          SUM(ISNULL([ActualHours], 0)) AS SubtaskActHours
+        FROM [dbo].[Subtask]
+        WHERE [IsDeleted] = 0
+        GROUP BY [TaskID]
+      ) sub ON t.[TaskID] = sub.[TaskID]
       WHERE t.[TaskID] = @TaskID AND t.[IsDeleted] = 0 AND m.[IsDeleted] = 0 AND p.[IsDeleted] = 0;
     `;
 
@@ -239,7 +292,9 @@ class TaskRepository extends BaseRepository {
       startDate: task.StartDate,
       dueDate: task.DueDate,
       completedDate: task.CompletedDate,
-      createdDate: task.CreatedDate
+      createdDate: task.CreatedDate,
+      estimatedHours: task.EstimatedHours !== null && task.EstimatedHours !== undefined ? Number(task.EstimatedHours) : 0,
+      actualHours: task.ActualHours !== null && task.ActualHours !== undefined ? Number(task.ActualHours) : 0
     };
   }
 
@@ -375,21 +430,30 @@ class TaskRepository extends BaseRepository {
     startDate,
     dueDate,
     completedDate,
+    estimatedHours,
+    actualHours,
     createdBy
   }, transaction = null) {
     const todayStr = new Date().toISOString().substring(0, 10);
-    const effectiveStartDate = startDate || todayStr;
+    let effectiveStartDate = startDate;
+    if (!effectiveStartDate) {
+      if (dueDate && todayStr > dueDate) {
+        effectiveStartDate = dueDate;
+      } else {
+        effectiveStartDate = todayStr;
+      }
+    }
     const effectiveReviewerId = reviewerId || projectManagerId || createdBy;
 
     const queryStr = `
       INSERT INTO [dbo].[Task] (
         [ProjectID], [MilestoneID], [Title], [Description], [AssignedTo], [ReviewerID],
-        [Priority], [Status], [StartDate], [DueDate], [CompletedDate], [CreatedBy]
+        [Priority], [Status], [StartDate], [DueDate], [CompletedDate], [EstimatedHours], [ActualHours], [CreatedBy]
       )
       OUTPUT INSERTED.[TaskID]
       VALUES (
         @ProjectID, @MilestoneID, @Title, @Description, @AssignedTo, @ReviewerID,
-        @Priority, @Status, @StartDate, @DueDate, @CompletedDate, @CreatedBy
+        @Priority, @Status, @StartDate, @DueDate, @CompletedDate, @EstimatedHours, @ActualHours, @CreatedBy
       );
     `;
 
@@ -405,6 +469,8 @@ class TaskRepository extends BaseRepository {
       StartDate: { type: mssql.Date, value: effectiveStartDate },
       DueDate: { type: mssql.Date, value: dueDate },
       CompletedDate: { type: mssql.Date, value: completedDate || null },
+      EstimatedHours: { type: mssql.Decimal(6, 2), value: estimatedHours !== undefined && estimatedHours !== null ? estimatedHours : null },
+      ActualHours: { type: mssql.Decimal(6, 2), value: actualHours !== undefined && actualHours !== null ? actualHours : null },
       CreatedBy: { type: mssql.Int, value: createdBy }
     };
 
@@ -460,6 +526,14 @@ class TaskRepository extends BaseRepository {
     if (updateData.dueDate !== undefined) {
       setClauses.push('[DueDate] = @DueDate');
       params.DueDate = { type: mssql.Date, value: updateData.dueDate };
+    }
+    if (updateData.estimatedHours !== undefined) {
+      setClauses.push('[EstimatedHours] = @EstimatedHours');
+      params.EstimatedHours = { type: mssql.Decimal(6, 2), value: updateData.estimatedHours !== null ? updateData.estimatedHours : null };
+    }
+    if (updateData.actualHours !== undefined) {
+      setClauses.push('[ActualHours] = @ActualHours');
+      params.ActualHours = { type: mssql.Decimal(6, 2), value: updateData.actualHours !== null ? updateData.actualHours : null };
     }
 
     const queryStr = `

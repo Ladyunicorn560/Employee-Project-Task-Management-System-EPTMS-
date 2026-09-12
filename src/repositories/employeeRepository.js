@@ -42,6 +42,12 @@ class EmployeeRepository extends BaseRepository {
         e.[Email],
         e.[Phone],
         e.[Status],
+        e.[HourlyRate],
+        e.[ManagerID],
+        m.[FirstName] + N' ' + m.[LastName] AS ManagerName,
+        m.[FirstName] AS ManagerFirstName,
+        m.[LastName] AS ManagerLastName,
+        m.[Email] AS ManagerEmail,
         e.[LastLoginDate],
         e.[CreatedDate],
         e.[DepartmentID],
@@ -52,6 +58,7 @@ class EmployeeRepository extends BaseRepository {
       FROM [dbo].[Employee] e
       INNER JOIN [dbo].[Department] d ON e.[DepartmentID] = d.[DepartmentID]
       INNER JOIN [dbo].[Role] r ON e.[RoleID] = r.[RoleID]
+      LEFT JOIN [dbo].[Employee] m ON e.[ManagerID] = m.[EmployeeID]
       ${whereClause}
       ORDER BY e.[EmployeeID] DESC
       OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY;
@@ -70,6 +77,14 @@ class EmployeeRepository extends BaseRepository {
         email: employee.Email,
         phone: employee.Phone,
         status: employee.Status,
+        hourlyRate: employee.HourlyRate ?? 50.0,
+        manager: employee.ManagerID ? {
+          id: employee.ManagerID,
+          name: employee.ManagerName,
+          firstName: employee.ManagerFirstName,
+          lastName: employee.ManagerLastName,
+          email: employee.ManagerEmail
+        } : null,
         lastLoginDate: employee.LastLoginDate,
         createdDate: employee.CreatedDate,
         department: {
@@ -104,6 +119,12 @@ class EmployeeRepository extends BaseRepository {
         e.[Email],
         e.[Phone],
         e.[Status],
+        e.[HourlyRate],
+        e.[ManagerID],
+        m.[FirstName] + N' ' + m.[LastName] AS ManagerName,
+        m.[FirstName] AS ManagerFirstName,
+        m.[LastName] AS ManagerLastName,
+        m.[Email] AS ManagerEmail,
         e.[LastLoginDate],
         e.[CreatedDate],
         e.[DepartmentID],
@@ -113,6 +134,7 @@ class EmployeeRepository extends BaseRepository {
       FROM [dbo].[Employee] e
       INNER JOIN [dbo].[Department] d ON e.[DepartmentID] = d.[DepartmentID]
       INNER JOIN [dbo].[Role] r ON e.[RoleID] = r.[RoleID]
+      LEFT JOIN [dbo].[Employee] m ON e.[ManagerID] = m.[EmployeeID]
       WHERE e.[EmployeeID] = @EmployeeID AND e.[IsDeleted] = 0;
     `;
 
@@ -133,6 +155,14 @@ class EmployeeRepository extends BaseRepository {
       email: employee.Email,
       phone: employee.Phone,
       status: employee.Status,
+      hourlyRate: employee.HourlyRate ?? 50.0,
+      manager: employee.ManagerID ? {
+        id: employee.ManagerID,
+        name: employee.ManagerName,
+        firstName: employee.ManagerFirstName,
+        lastName: employee.ManagerLastName,
+        email: employee.ManagerEmail
+      } : null,
       lastLoginDate: employee.LastLoginDate,
       createdDate: employee.CreatedDate,
       department: {
@@ -198,16 +228,18 @@ class EmployeeRepository extends BaseRepository {
   /**
    * Inserts new employee record
    */
-  async create({ firstName, lastName, email, phone, departmentId, roleId, passwordHash, status, createdBy }) {
+  async create({ firstName, lastName, email, phone, departmentId, roleId, passwordHash, status, managerId, hourlyRate, createdBy }) {
     const queryStr = `
       INSERT INTO [dbo].[Employee] (
         [FirstName], [LastName], [Email], [Phone], 
-        [DepartmentID], [RoleID], [PasswordHash], [Status], [CreatedBy]
+        [DepartmentID], [RoleID], [PasswordHash], [Status],
+        [ManagerID], [HourlyRate], [CreatedBy]
       )
       OUTPUT INSERTED.[EmployeeID]
       VALUES (
         @FirstName, @LastName, @Email, @Phone, 
-        @DepartmentID, @RoleID, @PasswordHash, @Status, @CreatedBy
+        @DepartmentID, @RoleID, @PasswordHash, @Status,
+        @ManagerID, @HourlyRate, @CreatedBy
       );
     `;
 
@@ -220,6 +252,8 @@ class EmployeeRepository extends BaseRepository {
       RoleID: { type: mssql.Int, value: roleId },
       PasswordHash: { type: mssql.NVarChar(255), value: passwordHash },
       Status: { type: mssql.NVarChar(30), value: status || 'Active' },
+      ManagerID: { type: mssql.Int, value: managerId || null },
+      HourlyRate: { type: mssql.Decimal(10, 2), value: hourlyRate ?? 50.00 },
       CreatedBy: { type: mssql.Int, value: createdBy }
     };
 
@@ -264,6 +298,14 @@ class EmployeeRepository extends BaseRepository {
     if (updateData.status !== undefined) {
       setClauses.push('[Status] = @Status');
       params.Status = { type: mssql.NVarChar(30), value: updateData.status };
+    }
+    if (updateData.managerId !== undefined) {
+      setClauses.push('[ManagerID] = @ManagerID');
+      params.ManagerID = { type: mssql.Int, value: updateData.managerId || null };
+    }
+    if (updateData.hourlyRate !== undefined) {
+      setClauses.push('[HourlyRate] = @HourlyRate');
+      params.HourlyRate = { type: mssql.Decimal(10, 2), value: updateData.hourlyRate };
     }
     if (updateData.passwordHash !== undefined) {
       setClauses.push('[PasswordHash] = @PasswordHash');

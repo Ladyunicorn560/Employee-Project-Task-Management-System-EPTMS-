@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Box, Grid, MenuItem, Select, FormControl, InputLabel, Tooltip, IconButton, Typography, TextField } from '@mui/material';
+import { Box, Grid, MenuItem, Select, FormControl, InputLabel, Tooltip, IconButton, Typography, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import ModeEditOutlineOutlinedIcon from '@mui/icons-material/ModeEditOutlineOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -78,6 +78,36 @@ const TaskListPage = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Status Change Dialog State
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusComment, setStatusComment] = useState('');
+  const [statusSubmitting, setStatusSubmitting] = useState(false);
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusComment.trim()) {
+      toast.error('Status change requires a tracked comment.');
+      return;
+    }
+    setStatusSubmitting(true);
+    try {
+      await taskService.update(statusTarget.taskId, {
+        status: statusTarget.newStatus,
+        comment: statusComment.trim(),
+      });
+      toast.success(`Task status updated to ${statusTarget.newStatus}`);
+      setStatusModalOpen(false);
+      setStatusTarget(null);
+      setStatusComment('');
+      fetchTasks();
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to update status.';
+      toast.error(msg);
+    } finally {
+      setStatusSubmitting(false);
+    }
+  };
+
   // 1. Fetch initial Projects and Employees list
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -140,12 +170,13 @@ const TaskListPage = () => {
       // Role Visibility Constraint
       const assignedEmployeeId = isEmployee ? user?.id : (assigneeFilter || undefined);
       const reviewerId = reviewerFilter || undefined;
+      const isOverdueParam = searchParams.get('filter') === 'overdue';
 
       const res = await taskService.getAll({
-        projectId: selectedProjectId || undefined,
-        milestoneId: selectedMilestoneId || undefined,
-        page: page + 1,
-        limit: pageSize,
+        projectId: isOverdueParam ? undefined : (selectedProjectId || undefined),
+        milestoneId: isOverdueParam ? undefined : (selectedMilestoneId || undefined),
+        page: isOverdueParam ? 1 : page + 1,
+        limit: isOverdueParam ? 500 : pageSize,
         search: search || undefined,
         status: statusFilter || undefined,
         priority: priorityFilter || undefined,
@@ -153,15 +184,22 @@ const TaskListPage = () => {
         reviewerId,
       });
 
-      setTasks(res.data || []);
-      setTotalCount(res.pagination?.total || 0);
+      let list = res.data || [];
+      if (isOverdueParam) {
+        list = list.filter(
+          (t) => t.status !== 'Completed' && t.status !== 'Cancelled' && t.dueDate && new Date(t.dueDate) < new Date()
+        );
+      }
+
+      setTasks(list);
+      setTotalCount(isOverdueParam ? list.length : (res.pagination?.total || 0));
     } catch (err) {
       console.error('Failed to retrieve tasks:', err);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [selectedProjectId, selectedMilestoneId, page, pageSize, search, statusFilter, priorityFilter, assigneeFilter, reviewerFilter, isEmployee, user?.id]);
+  }, [selectedProjectId, selectedMilestoneId, page, pageSize, search, statusFilter, priorityFilter, assigneeFilter, reviewerFilter, isEmployee, user?.id, searchParams]);
 
   useEffect(() => {
     fetchTasks();
@@ -221,8 +259,9 @@ const TaskListPage = () => {
     return projects.find((p) => p.id === selectedProjectId);
   }, [projects, selectedProjectId]);
 
-  // Check if PM manages the currently selected project
+  // Permission checks
   const canManageTasks = isAdmin || (isPM && currentProject?.projectManager?.id === user?.id);
+  const canCreateTasks = !!user;
 
   const columns = useMemo(
     () => [
@@ -273,16 +312,21 @@ const TaskListPage = () => {
               size="small"
               variant="standard"
               disableUnderline
-              onChange={async (e) => {
+              onChange={(e) => {
                 const newStatus = e.target.value;
-                try {
-                  await taskService.update(row.id, { status: newStatus });
-                  toast.success(`Task status updated to ${newStatus}`);
-                  fetchTasks();
-                } catch (err) {
-                  const msg = err?.response?.data?.message || 'Failed to update status.';
-                  toast.error(msg);
+                if (newStatus === val) return;
+                if (isEmployee && newStatus === 'Cancelled') {
+                  toast.error('Employees cannot cancel tasks. For task cancellation, Manager approval is required.');
+                  return;
                 }
+                const isReviewerForTask = canManageTasks || row.reviewerId === user?.id || row.reviewer?.id === user?.id;
+                if ((newStatus === 'Under Review' || val === 'Under Review') && !isReviewerForTask) {
+                  toast.error("Status 'Under Review' can only be updated by the assigned Reviewer.");
+                  return;
+                }
+                setStatusTarget({ taskId: row.id, newStatus, currentStatus: val, title: row.taskTitle });
+                setStatusComment('');
+                setStatusModalOpen(true);
               }}
               renderValue={(selected) => <StatusChip status={selected} />}
               sx={{
@@ -297,6 +341,7 @@ const TaskListPage = () => {
               <MenuItem value="Not Started">Not Started</MenuItem>
               <MenuItem value="Assigned">Assigned</MenuItem>
               <MenuItem value="In Progress">In Progress</MenuItem>
+              <MenuItem value="Waiting for Information">Waiting for Information</MenuItem>
               <MenuItem value="Blocked">Blocked</MenuItem>
               <MenuItem value="Ready for Review">Ready for Review</MenuItem>
               <MenuItem value="Under Review">Under Review</MenuItem>
@@ -310,9 +355,14 @@ const TaskListPage = () => {
       {
         id: 'timeline',
         label: 'Due Date',
-        minWidth: 140,
+        minWidth: 160,
         render: (_, row) => {
           const isTaskOverdue = row.status !== 'Completed' && row.status !== 'Cancelled' && row.dueDate && new Date(row.dueDate) < new Date();
+          let overdueDays = 0;
+          if (isTaskOverdue) {
+            const diffMs = new Date() - new Date(row.dueDate);
+            overdueDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+          }
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography 
@@ -329,17 +379,16 @@ const TaskListPage = () => {
                     color: 'error.main',
                     fontWeight: 800,
                     backgroundColor: '#FFF5F5',
-                    px: 0.5,
-                    py: 0.1,
+                    px: 0.8,
+                    py: 0.2,
                     borderRadius: '4px',
                     border: '1px solid',
                     borderColor: 'error.light',
-                    textTransform: 'uppercase',
-                    fontSize: '0.55rem',
+                    fontSize: '0.65rem',
                     letterSpacing: 0.3,
                   }}
                 >
-                  Overdue
+                  {overdueDays}d OVERDUE
                 </Typography>
               )}
             </Box>
@@ -400,18 +449,37 @@ const TaskListPage = () => {
         description="Monitor system work schedules, checklists, and execution logs."
         breadcrumbItems={[{ label: 'Tasks' }]}
         action={
-          canManageTasks &&
-          selectedMilestoneId && (
+          canCreateTasks && (
             <AppButton
               variant="primary"
               startIcon={<AddRoundedIcon />}
-              onClick={() => navigate(`${ROUTES.TASKS}/create?milestoneId=${selectedMilestoneId}`)}
+              onClick={() =>
+                navigate(
+                  selectedMilestoneId
+                    ? `${ROUTES.TASKS}/create?milestoneId=${selectedMilestoneId}`
+                    : `${ROUTES.TASKS}/create`
+                )
+              }
             >
-              Add Task
+              Create Task
             </AppButton>
           )
         }
       />
+
+      {searchParams.get('filter') === 'overdue' && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 3, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setSearchParams({})}>
+              Show All Tasks
+            </Button>
+          }
+        >
+          Viewing <strong>Overdue Tasks Only</strong>. Filter applied from Dashboard.
+        </Alert>
+      )}
 
       {/* Cascading Filter Bar */}
       <Box sx={{ mb: 4 }}>
@@ -574,6 +642,42 @@ const TaskListPage = () => {
         emptyDescription="Create a new task pipeline item to allocate work deliverables."
         emptyActionLabel="Clear Filters"
       />
+
+      {/* Status Change Comment Dialog */}
+      <Dialog open={statusModalOpen} onClose={() => setStatusModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Status Change Comment Required
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Updating <strong>{statusTarget?.title || 'Task'}</strong> status from <em>{statusTarget?.currentStatus}</em> to <strong>{statusTarget?.newStatus}</strong>.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            rows={3}
+            label="Comment / Reason (Mandatory)"
+            placeholder="Explain the work done or reason for changing status..."
+            value={statusComment}
+            onChange={(e) => setStatusComment(e.target.value)}
+            error={!statusComment.trim()}
+            helperText={!statusComment.trim() ? 'A comment is mandatory when changing status.' : ''}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setStatusModalOpen(false)} disabled={statusSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!statusComment.trim() || statusSubmitting}
+            onClick={handleConfirmStatusChange}
+          >
+            {statusSubmitting ? 'Updating...' : 'Confirm Status Change'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <ConfirmDialog
