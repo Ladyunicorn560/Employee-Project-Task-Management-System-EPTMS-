@@ -34,6 +34,10 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // In Demo Mode on public deployment, do NOT destroy session on 401
+      if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
+        return Promise.reject(error);
+      }
       clearAuth();
       // Redirect to login (avoid full page reload for SPA)
       window.location.href = '/login';
