@@ -11,6 +11,10 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: DB_SERVER
+        value: localhost
+      - key: DB_NAME
+        value: EPTMS_DB
       - key: JWT_EXPIRES_IN
         value: 8h
       - key: LOG_LEVEL

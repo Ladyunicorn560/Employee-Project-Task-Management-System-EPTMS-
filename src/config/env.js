@@ -11,8 +11,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   
   // Database Configuration
-  DB_SERVER: z.string({ required_error: 'DB_SERVER environment variable is required' }),
-  DB_NAME: z.string({ required_error: 'DB_NAME environment variable is required' }),
+  DB_SERVER: z.string().optional().default('localhost'),
+  DB_NAME: z.string().optional().default('EPTMS_DB'),
   DB_TRUST_SERVER_CERTIFICATE: z.string().optional().default('true').transform((val) => val === 'true'),
   DB_ENCRYPT: z.string().optional().default('false').transform((val) => val === 'true'),
   DB_USER: z.string().optional().default(''),
