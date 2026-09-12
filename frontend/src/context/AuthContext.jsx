@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       // In Demo Mode on public deployment, fallback to instant demo user session if DB API is not ready
       if (import.meta.env.VITE_ENABLE_DEMO_MODE === 'true') {
-        let demoRole = 'Admin';
+        let demoRole = 'Administrator';
         let demoDept = 'Executive Management';
         let demoId = 1;
 
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
           demoDept = 'Engineering';
           demoId = 2;
         } else if (email.includes('employee')) {
-          demoRole = 'Software Engineer';
+          demoRole = 'Employee';
           demoDept = 'Engineering';
           demoId = 3;
         }

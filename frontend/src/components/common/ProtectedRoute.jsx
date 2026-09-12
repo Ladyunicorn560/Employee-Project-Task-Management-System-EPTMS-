@@ -32,7 +32,16 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   // Role check (only if allowedRoles is specified)
   if (allowedRoles.length > 0 && user?.roleName) {
-    const hasAccess = allowedRoles.includes(user.roleName);
+    const userRole = user.roleName.toLowerCase();
+    const hasAccess = allowedRoles.some((role) => {
+      const r = role.toLowerCase();
+      return (
+        r === userRole ||
+        (r === 'administrator' && (userRole === 'admin' || userRole === 'administrator')) ||
+        (r === 'project manager' && (userRole === 'manager' || userRole === 'pm')) ||
+        (r === 'employee' && (userRole === 'employee' || userRole === 'software engineer'))
+      );
+    });
     if (!hasAccess) {
       return <Navigate to={ROUTES.ERROR_403} replace />;
     }
